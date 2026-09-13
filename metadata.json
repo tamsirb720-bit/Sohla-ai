@@ -1,0 +1,6 @@
+{
+  "name": "SOHLA AI",
+  "description": "The Gambia's All-in-One AI Platform — Your Everyday. Simplified. Discover verified local businesses, delivery, NAWEC cash power, payments, and intelligent local AI assistance.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
