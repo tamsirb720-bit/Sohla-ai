@@ -10,6 +10,27 @@ export type BusinessCategory =
   | 'AI JOBS & INCOME'
   | 'PAYMENTS';
 
+export interface OurWorkItem {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  category?: string;
+  completedDate?: string;
+  tags?: string[];
+}
+
+export interface PartnerReview {
+  id: string;
+  partnerId: string;
+  authorName: string;
+  rating: number; // 1 to 5
+  date: string;
+  comment: string;
+  serviceUsed?: string;
+  verifiedUser?: boolean;
+}
+
 export interface BusinessPartner {
   id: string;
   name: string;
@@ -27,6 +48,8 @@ export interface BusinessPartner {
   logo: string;
   coverImage: string;
   photos: string[];
+  ourWork?: OurWorkItem[];
+  reviews?: PartnerReview[];
   openingHours: string;
   deliveryAvailable: boolean;
   deliveryFee: number; // in Dalasi (D)

@@ -877,6 +877,49 @@ app.delete('/api/partners/:id', (req: Request, res: Response) => {
   res.json({ success: true, message: `Partner ${removed.name} archived/deleted` });
 });
 
+// Partner Reviews endpoint
+app.post('/api/partners/:id/reviews', (req: Request, res: Response) => {
+  const partner = db.partners.find(p => p.id === req.params.id);
+  if (!partner) {
+    res.status(404).json({ error: 'Partner not found' });
+    return;
+  }
+
+  const { authorName, rating, comment, serviceUsed } = req.body;
+  if (!authorName || !rating || !comment) {
+    res.status(400).json({ error: 'Author name, rating, and review comment are required' });
+    return;
+  }
+
+  const numRating = Math.max(1, Math.min(5, Number(rating)));
+
+  if (!partner.reviews) {
+    partner.reviews = [];
+  }
+
+  const newReview = {
+    id: `rev-${Date.now()}`,
+    partnerId: partner.id,
+    authorName: authorName.trim(),
+    rating: numRating,
+    date: new Date().toISOString().split('T')[0],
+    comment: comment.trim(),
+    serviceUsed: serviceUsed ? serviceUsed.trim() : partner.subcategory,
+    verifiedUser: true
+  };
+
+  partner.reviews.unshift(newReview);
+
+  // Recalculate partner rating and reviewCount
+  const totalScore = partner.reviews.reduce((acc: number, r: any) => acc + (Number(r.rating) || 5), 0);
+  partner.reviewCount = partner.reviews.length;
+  partner.rating = Number((totalScore / partner.reviews.length).toFixed(1));
+  partner.lastUpdated = new Date().toISOString().split('T')[0];
+
+  saveDB();
+  res.json({ success: true, partner, review: newReview });
+});
+
 // 4. Products & Services Management
 app.get('/api/products', (req: Request, res: Response) => {
   res.json(db.products);

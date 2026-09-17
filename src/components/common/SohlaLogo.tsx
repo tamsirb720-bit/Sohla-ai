@@ -75,11 +75,6 @@ export const SohlaLogo: React.FC<SohlaLogoProps> = ({
           <span className={`${lightMode ? 'text-slate-900' : 'text-white'} drop-shadow-sm`}>H</span>
           <span className={`${lightMode ? 'text-slate-900' : 'text-white'} drop-shadow-sm`}>L</span>
           <span className={`${lightMode ? 'text-slate-900' : 'text-white'} drop-shadow-sm`}>A</span>
-
-          {/* AI Badge Accent */}
-          <span className="ml-1.5 px-1.5 py-0.5 rounded text-[0.38em] font-bold uppercase tracking-widest bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm border border-purple-400/40 align-top mt-1">
-            AI
-          </span>
         </div>
       </div>
 

@@ -45,6 +45,7 @@ import {
 } from '../../types';
 import { SohlaLogo } from '../common/SohlaLogo';
 import { TeamManagementTab } from './TeamManagementTab';
+import { Smartphone, Monitor } from 'lucide-react';
 
 interface AdminPortalProps {
   currentUser: AdminUser;
@@ -65,7 +66,8 @@ type AdminTab =
   | 'team'
   | 'ai_center'
   | 'audit_logs'
-  | 'system_health';
+  | 'system_health'
+  | 'customer_preview';
 
 export const AdminPortal: React.FC<AdminPortalProps> = ({
   currentUser,
@@ -444,11 +446,21 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           </button>
 
           <button
+            onClick={() => window.open(window.location.origin + '?mode=customer', '_blank')}
+            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold transition flex items-center space-x-1.5 cursor-pointer"
+            title="Launch Customers Version in New Window"
+          >
+            <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden sm:inline">Open Customer App</span>
+            <ExternalLink className="w-3 h-3 text-slate-400" />
+          </button>
+
+          <button
             onClick={onClosePortal}
             className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold transition flex items-center space-x-1.5 cursor-pointer shadow"
+            title="Switch To Customer App View"
           >
-            <span>Live App</span>
-            <ExternalLink className="w-3.5 h-3.5" />
+            <span>Customer View</span>
           </button>
 
           <button
@@ -479,6 +491,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               { id: 'partners', label: 'Partners & Businesses', icon: Store, badge: partners.length },
               { id: 'products', label: 'Product Catalog', icon: Tag },
               { id: 'ads', label: 'Video Billboard Ads', icon: Video, badge: ads.filter(a => a.active).length },
+              { id: 'customer_preview', label: 'Customer App (Live View)', icon: Smartphone, highlight: true },
               { id: 'team', label: 'Team & Verified Staff', icon: Users, badge: teamMembers.length },
               { id: 'ai_center', label: 'AI Brain & Telemetry', icon: Sparkles, badge: missingRequests.filter(m => !m.resolved).length },
               { id: 'audit_logs', label: 'Security Audit Logs', icon: FileCheck, badge: auditLogs.length },
@@ -494,6 +507,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
                     isActive
                       ? 'bg-purple-600 text-white shadow-md'
+                      : item.highlight
+                      ? 'text-emerald-400 bg-emerald-950/30 border border-emerald-500/30 hover:bg-emerald-900/50 hover:text-white'
                       : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                   }`}
                   title={item.label}
@@ -508,6 +523,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     >
                       {item.badge}
                     </span>
+                  )}
+                  {item.highlight && (
+                    <span className="hidden sm:inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   )}
                 </button>
               );
@@ -1677,6 +1695,90 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   <Download className="w-4 h-4" />
                   <span>Download Full Database Snapshot (.JSON)</span>
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: CUSTOMER APP (LIVE CONTROL & PREVIEW) */}
+          {activeTab === 'customer_preview' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-black font-display text-white tracking-tight flex items-center space-x-2">
+                    <Smartphone className="w-6 h-6 text-emerald-400" />
+                    <span>Customer Version (Live In-Portal Monitor)</span>
+                  </h1>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Observe the exact public customer interface in real-time while maintaining administrator controls
+                  </p>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => {
+                      // Open customer version in a separate clean tab without admin parameters
+                      window.open(window.location.origin + '?mode=customer', '_blank');
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 flex items-center space-x-1.5 transition cursor-pointer"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Open in New Window</span>
+                  </button>
+
+                  <button
+                    onClick={onClosePortal}
+                    className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow flex items-center space-x-1.5 transition cursor-pointer"
+                  >
+                    <span>Switch Screen to Customer App</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Actions Strip */}
+              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div className="flex items-center space-x-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                  <span className="font-bold text-white">Live Customer Pipeline:</span>
+                  <span className="text-slate-400">
+                    {partners.filter(p => p.active).length} Active Partners • {ads.filter(a => a.active).length} Billboard Ads Rotating
+                  </span>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setActiveTab('partners')}
+                    className="px-2.5 py-1.5 rounded-lg bg-purple-950/60 text-purple-300 border border-purple-500/30 hover:bg-purple-900/60 font-semibold"
+                  >
+                    + Add/Edit Partners
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('ads')}
+                    className="px-2.5 py-1.5 rounded-lg bg-indigo-950/60 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-900/60 font-semibold"
+                  >
+                    Configure Ads
+                  </button>
+                </div>
+              </div>
+
+              {/* Live Embedded Customer App Sandbox */}
+              <div className="flex justify-center bg-slate-900/60 p-4 sm:p-8 rounded-3xl border border-slate-800">
+                <div className="w-full max-w-sm sm:max-w-md bg-white rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-800 relative flex flex-col h-[750px]">
+                  {/* Phone Header Bar */}
+                  <div className="bg-slate-950 text-slate-400 px-4 py-2 flex items-center justify-between text-[11px] font-mono shrink-0 select-none">
+                    <div className="flex items-center space-x-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                      <span className="text-slate-300 font-bold">SOHLA Public Customer Preview</span>
+                    </div>
+                    <span>4G LTE • Gambia</span>
+                  </div>
+
+                  {/* Customer View Iframe */}
+                  <iframe
+                    src={`${window.location.origin}?mode=customer`}
+                    title="SOHLA Live Customer App"
+                    className="w-full flex-1 border-0 bg-white"
+                  />
+                </div>
               </div>
             </div>
           )}

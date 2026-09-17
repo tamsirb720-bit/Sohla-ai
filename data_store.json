@@ -379,13 +379,86 @@
         }
       ],
       "promotions": "10% off for Orders above D1,000 using SOHLA",
-      "rating": 4.8,
-      "reviewCount": 142,
+      "rating": 4.7,
+      "reviewCount": 3,
       "verificationStatus": "verified",
       "featuredStatus": true,
       "activeStatus": true,
       "dateAdded": "2026-01-10",
-      "lastUpdated": "2026-09-10"
+      "lastUpdated": "2026-09-10",
+      "ourWork": [
+        {
+          "id": "work-1-1",
+          "title": "VIP Atlantic Seafood Banquet",
+          "description": "Exclusive 80-guest coastal dinner featuring whole grilled barracuda, charcoal jumbo prawns, and chilled baobab nectar.",
+          "image": "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80",
+          "category": "Catering & Dining",
+          "completedDate": "March 2026",
+          "tags": [
+            "Seafood",
+            "Fine Dining",
+            "Senegambia Strip"
+          ]
+        },
+        {
+          "id": "work-1-2",
+          "title": "Authentic Sunday Benachin Feast",
+          "description": "Traditional Gambian red one-pot fish benachin prepared for family weekend gatherings with cassava, bitter tomato, and chili.",
+          "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
+          "category": "Gambian Cuisine",
+          "completedDate": "February 2026",
+          "tags": [
+            "Benachin",
+            "Local Flavors",
+            "Traditional"
+          ]
+        },
+        {
+          "id": "work-1-3",
+          "title": "Sunset Beach Terrace Deck Setup",
+          "description": "Refurbished open-air wooden dining terrace facing the Atlantic sunset for live acoustic kora evenings and romantic dining.",
+          "image": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80",
+          "category": "Venue & Ambiance",
+          "completedDate": "January 2026",
+          "tags": [
+            "Atmosphere",
+            "Kololi Beach",
+            "Live Kora"
+          ]
+        }
+      ],
+      "reviews": [
+        {
+          "id": "rev-1-1",
+          "partnerId": "bp-1",
+          "authorName": "Modou Lamin Touray",
+          "rating": 5,
+          "date": "2026-09-08",
+          "comment": "Best fish benachin in Kololi! Fresh ladyfish and the wonjo juice was cold and refreshing. The ocean breeze makes it unbeatable.",
+          "serviceUsed": "Dine-In • Fish Benachin",
+          "verifiedUser": true
+        },
+        {
+          "id": "rev-1-2",
+          "partnerId": "bp-1",
+          "authorName": "Aminata Ceesay",
+          "rating": 5,
+          "date": "2026-08-28",
+          "comment": "Ordered via WhatsApp delivery to our residence in Kotu. Arrived within 35 minutes piping hot. The grilled prawns were huge!",
+          "serviceUsed": "Express Delivery",
+          "verifiedUser": true
+        },
+        {
+          "id": "rev-1-3",
+          "partnerId": "bp-1",
+          "authorName": "Sophie Van Der Meer",
+          "rating": 4,
+          "date": "2026-08-14",
+          "comment": "Lovely terrace view. Great Domoda with rich peanut sauce and tender beef. Staff was very attentive.",
+          "serviceUsed": "Dinner & Live Music",
+          "verifiedUser": true
+        }
+      ]
     },
     {
       "id": "bp-2",
@@ -458,13 +531,86 @@
         }
       ],
       "promotions": "Free screen protector with any phone purchase",
-      "rating": 4.9,
-      "reviewCount": 98,
+      "rating": 5,
+      "reviewCount": 3,
       "verificationStatus": "verified",
       "featuredStatus": true,
       "activeStatus": true,
       "dateAdded": "2026-02-01",
-      "lastUpdated": "2026-09-11"
+      "lastUpdated": "2026-09-11",
+      "ourWork": [
+        {
+          "id": "work-2-1",
+          "title": "Off-Grid Solar Emergency Home Lighting Setup",
+          "description": "Installed 300W high-efficiency solar kit with 12V backup inverter and smart LED bulbs for uninterrupted power in Brusubi.",
+          "image": "https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?auto=format&fit=crop&w=600&q=80",
+          "category": "Solar & Power Kits",
+          "completedDate": "March 2026",
+          "tags": [
+            "Solar Kit",
+            "Load Shedding Backup",
+            "NAWEC Ready"
+          ]
+        },
+        {
+          "id": "work-2-2",
+          "title": "Precision Curved OLED Screen Restoration",
+          "description": "Clean factory-grade glass and digitizer replacement for Samsung Galaxy S23 Ultra completed in 40 minutes at our Fajara repair lab.",
+          "image": "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80",
+          "category": "Device Repair",
+          "completedDate": "February 2026",
+          "tags": [
+            "Screen Fix",
+            "OLED",
+            "Certified Tech"
+          ]
+        },
+        {
+          "id": "work-2-3",
+          "title": "Corporate Laptop & Workstation Deployment",
+          "description": "Delivered and configured 12 Dell Latitude business laptops with pre-installed productivity software for a financial firm in Kairaba.",
+          "image": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=600&q=80",
+          "category": "IT Hardware",
+          "completedDate": "January 2026",
+          "tags": [
+            "Laptops",
+            "Corporate Supply",
+            "Kairaba Avenue"
+          ]
+        }
+      ],
+      "reviews": [
+        {
+          "id": "rev-2-1",
+          "partnerId": "bp-2",
+          "authorName": "Ebrima Camara",
+          "rating": 5,
+          "date": "2026-09-02",
+          "comment": "Fixed my cracked Samsung display in 45 minutes right in front of me. Genuine screen, transparent pricing with no hidden charges.",
+          "serviceUsed": "Screen Replacement",
+          "verifiedUser": true
+        },
+        {
+          "id": "rev-2-2",
+          "partnerId": "bp-2",
+          "authorName": "Fatou Sanyang",
+          "rating": 5,
+          "date": "2026-08-20",
+          "comment": "The Oraimo 20,000mAh power bank is 100% authentic! Charges my phone up to 5 times. Very honest electronics shop on Kairaba Ave.",
+          "serviceUsed": "Power Bank & Accessories",
+          "verifiedUser": true
+        },
+        {
+          "id": "rev-2-3",
+          "partnerId": "bp-2",
+          "authorName": "Momodou Jallow",
+          "rating": 5,
+          "date": "2026-08-05",
+          "comment": "Super fast WhatsApp communication and delivered to Westfield roundabout within an hour. Recommended!",
+          "serviceUsed": "Online WhatsApp Order",
+          "verifiedUser": true
+        }
+      ]
     },
     {
       "id": "bp-3",
@@ -515,13 +661,63 @@
         }
       ],
       "promotions": "D100 discount on roundtrip airport bookings",
-      "rating": 4.7,
-      "reviewCount": 210,
+      "rating": 5,
+      "reviewCount": 2,
       "verificationStatus": "verified",
       "featuredStatus": true,
       "activeStatus": true,
       "dateAdded": "2026-01-15",
-      "lastUpdated": "2026-09-08"
+      "lastUpdated": "2026-09-08",
+      "ourWork": [
+        {
+          "id": "work-3-1",
+          "title": "Banjul International Airport (Yundum) VIP Transfers",
+          "description": "Flight-tracked airport pickup fleet with air-conditioned comfort, luggage assistance, and direct transfer to Senegambia hotels.",
+          "image": "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=600&q=80",
+          "category": "Airport Transfer",
+          "completedDate": "March 2026",
+          "tags": [
+            "Airport Yundum",
+            "Flight Tracked",
+            "Air-Conditioned"
+          ]
+        },
+        {
+          "id": "work-3-2",
+          "title": "Full-Day Coastal & Cultural Sightseeing Tour",
+          "description": "Tailored private chauffeur tour covering Banjul Arch 22, Albert Market, Kachikally Crocodile Pool, and Tanji Fishing Village.",
+          "image": "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=600&q=80",
+          "category": "Tour Charter",
+          "completedDate": "February 2026",
+          "tags": [
+            "Gambia Tour",
+            "Private Driver",
+            "Kachikally"
+          ]
+        }
+      ],
+      "reviews": [
+        {
+          "id": "rev-3-1",
+          "partnerId": "bp-3",
+          "authorName": "Isatou Bah",
+          "rating": 5,
+          "date": "2026-09-06",
+          "comment": "Driver Pa Malick was already waiting at Banjul Airport terminal with a clear placard. Cold AC and smooth ride to Kololi.",
+          "serviceUsed": "Airport Transfer",
+          "verifiedUser": true
+        },
+        {
+          "id": "rev-3-2",
+          "partnerId": "bp-3",
+          "authorName": "David Miller",
+          "rating": 5,
+          "date": "2026-08-25",
+          "comment": "Booked via SOHLA on WhatsApp. Clean modern taxi and transparent rates without any tourist haggling.",
+          "serviceUsed": "Town Trip • Senegambia",
+          "verifiedUser": true
+        }
+      ]
     },
     {
       "id": "bp-4",
@@ -570,13 +766,63 @@
         }
       ],
       "promotions": "First errand delivery free for new SOHLA app users",
-      "rating": 4.9,
-      "reviewCount": 312,
+      "rating": 5,
+      "reviewCount": 2,
       "verificationStatus": "verified",
       "featuredStatus": true,
       "activeStatus": true,
       "dateAdded": "2026-01-05",
-      "lastUpdated": "2026-09-12"
+      "lastUpdated": "2026-09-12",
+      "ourWork": [
+        {
+          "id": "work-4-1",
+          "title": "Express Market-to-Door Fresh Grocery Run",
+          "description": "Hand-picked fresh fish, vegetables, and staples from Serrekunda Market delivered in insulated cooling boxes to residences in Bijilo.",
+          "image": "https://images.unsplash.com/photo-1580674684081-7617fbf3d745?auto=format&fit=crop&w=600&q=80",
+          "category": "Market Errands",
+          "completedDate": "March 2026",
+          "tags": [
+            "Serrekunda Market",
+            "Fresh Food",
+            "Fast Rider"
+          ]
+        },
+        {
+          "id": "work-4-2",
+          "title": "Urgent Legal & Official Document Dispatch",
+          "description": "Secure, time-stamped delivery of contracts and sealed filings between Kairaba corporate offices and the High Court in Banjul.",
+          "image": "https://images.unsplash.com/photo-1616401784845-180882ba9ba8?auto=format&fit=crop&w=600&q=80",
+          "category": "Legal Dispatch",
+          "completedDate": "February 2026",
+          "tags": [
+            "Confidential",
+            "Banjul Express",
+            "Direct Delivery"
+          ]
+        }
+      ],
+      "reviews": [
+        {
+          "id": "rev-4-1",
+          "partnerId": "bp-4",
+          "authorName": "Mariama Sowe",
+          "rating": 5,
+          "date": "2026-09-04",
+          "comment": "Saved me 3 hours of traffic in Serrekunda. They bought fresh fish and delivered to my doorstep in Brusubi in under an hour.",
+          "serviceUsed": "Market Grocery Run",
+          "verifiedUser": true
+        },
+        {
+          "id": "rev-4-2",
+          "partnerId": "bp-4",
+          "authorName": "Ousman Drammeh",
+          "rating": 5,
+          "date": "2026-08-19",
+          "comment": "Motorcycle courier was polite, called before arrival, and handled our legal documents with complete care.",
+          "serviceUsed": "Document Dispatch",
+          "verifiedUser": true
+        }
+      ]
     },
     {
       "id": "bp-5",
@@ -630,13 +876,63 @@
         }
       ],
       "promotions": "Complimentary herbal tea with every spa package",
-      "rating": 4.8,
-      "reviewCount": 88,
+      "rating": 5,
+      "reviewCount": 2,
       "verificationStatus": "verified",
       "featuredStatus": true,
       "activeStatus": true,
       "dateAdded": "2026-02-10",
-      "lastUpdated": "2026-09-02"
+      "lastUpdated": "2026-09-02",
+      "ourWork": [
+        {
+          "id": "work-5-1",
+          "title": "Royal Gambian Bridal Henna & Hair Artistry",
+          "description": "Full bridal intricate henna adornment and traditional cornrow styling using 100% natural organic henna and Gambian baobab oil.",
+          "image": "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=600&q=80",
+          "category": "Bridal & Henna",
+          "completedDate": "March 2026",
+          "tags": [
+            "Bridal Henna",
+            "Natural Oil",
+            "Traditional Styling"
+          ]
+        },
+        {
+          "id": "work-5-2",
+          "title": "Natural Shea Butter & Scalp Rejuvenation Session",
+          "description": "Deep herbal steaming therapy infused with eucalyptus and whipped West African shea butter for hair hydration and scalp care.",
+          "image": "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80",
+          "category": "Spa & Wellness",
+          "completedDate": "February 2026",
+          "tags": [
+            "Shea Butter",
+            "Scalp Therapy",
+            "Brusubi Salon"
+          ]
+        }
+      ],
+      "reviews": [
+        {
+          "id": "rev-5-1",
+          "partnerId": "bp-5",
+          "authorName": "Awa Njie",
+          "rating": 5,
+          "date": "2026-09-05",
+          "comment": "Queen Amina did my wedding henna and knotless braids. Everyone at the ceremony praised the detailed henna patterns!",
+          "serviceUsed": "Bridal Henna & Braids",
+          "verifiedUser": true
+        },
+        {
+          "id": "rev-5-2",
+          "partnerId": "bp-5",
+          "authorName": "Binta Darboe",
+          "rating": 5,
+          "date": "2026-08-12",
+          "comment": "Very clean salon in Brusubi. Gentle on natural hair and reasonable prices. Will always come back.",
+          "serviceUsed": "Scalp Steam & Styling",
+          "verifiedUser": true
+        }
+      ]
     },
     {
       "id": "bp-6",
@@ -677,13 +973,63 @@
         }
       ],
       "promotions": "Free electrical safety assessment with AC installation",
-      "rating": 4.9,
-      "reviewCount": 76,
+      "rating": 5,
+      "reviewCount": 2,
       "verificationStatus": "verified",
       "featuredStatus": false,
       "activeStatus": true,
       "dateAdded": "2026-02-15",
-      "lastUpdated": "2026-09-05"
+      "lastUpdated": "2026-09-05",
+      "ourWork": [
+        {
+          "id": "work-6-1",
+          "title": "5KVA Hybrid Solar Power Inverter Installation in Bijilo",
+          "description": "Engineered and installed a 5kVA pure sine wave hybrid inverter with 4x 200Ah gel batteries and rooftop mono solar array.",
+          "image": "https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=600&q=80",
+          "category": "Solar Engineering",
+          "completedDate": "March 2026",
+          "tags": [
+            "5kVA Solar",
+            "Zero Load Shedding",
+            "Bijilo Villa"
+          ]
+        },
+        {
+          "id": "work-6-2",
+          "title": "NAWEC Certified Prepaid Meter Box Rewiring",
+          "description": "Upgraded residential consumer unit, installed surge protection devices, and re-routed clean power lines for NAWEC inspection.",
+          "image": "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=600&q=80",
+          "category": "Electrical Inspection",
+          "completedDate": "February 2026",
+          "tags": [
+            "NAWEC Meter",
+            "Surge Protection",
+            "Certified Safety"
+          ]
+        }
+      ],
+      "reviews": [
+        {
+          "id": "rev-6-1",
+          "partnerId": "bp-6",
+          "authorName": "Alagie Faye",
+          "rating": 5,
+          "date": "2026-09-07",
+          "comment": "Installed our 5kVA solar backup system. When NAWEC goes out, our lights and freezer don't even flicker. Excellent technician.",
+          "serviceUsed": "Solar Backup Installation",
+          "verifiedUser": true
+        },
+        {
+          "id": "rev-6-2",
+          "partnerId": "bp-6",
+          "authorName": "Sainabou Jatta",
+          "rating": 5,
+          "date": "2026-08-15",
+          "comment": "Fixed our meter earthing problem and re-certified our distribution board. Very professional and prompt.",
+          "serviceUsed": "Meter Box & Safety Rewiring",
+          "verifiedUser": true
+        }
+      ]
     }
   ],
   "products": [
@@ -795,13 +1141,13 @@
       "type": "video",
       "mediaUrl": "https://assets.mixkit.co/videos/preview/mixkit-african-woman-smiling-while-using-a-mobile-phone-41804-large.mp4",
       "posterUrl": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=1200&q=80",
-      "durationSeconds": 30,
+      "durationSeconds": 6,
       "active": true,
       "priority": 1,
       "targetCategory": "ALL",
       "startDate": "2026-01-01",
       "endDate": "2026-12-31",
-      "impressions": 1420,
+      "impressions": 1451,
       "clicks": 345
     },
     {
@@ -814,13 +1160,13 @@
       "type": "image",
       "mediaUrl": "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=1200&q=80",
       "posterUrl": "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=1200&q=80",
-      "durationSeconds": 15,
+      "durationSeconds": 6,
       "active": true,
       "priority": 2,
       "targetCategory": "BUY CASH POWER (NAWEC)",
       "startDate": "2026-01-01",
       "endDate": "2026-12-31",
-      "impressions": 980,
+      "impressions": 1011,
       "clicks": 215
     },
     {
@@ -833,17 +1179,27 @@
       "type": "image",
       "mediaUrl": "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1200&q=80",
       "posterUrl": "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1200&q=80",
-      "durationSeconds": 20,
+      "durationSeconds": 6,
       "active": true,
       "priority": 3,
       "targetCategory": "FOOD & RESTAURANTS",
       "startDate": "2026-03-01",
       "endDate": "2026-10-31",
-      "impressions": 740,
+      "impressions": 771,
       "clicks": 160
     }
   ],
   "auditLogs": [
+    {
+      "id": "log-1789334720526-94eh",
+      "timestamp": "2026-09-13T21:25:20.526Z",
+      "adminId": "current-session",
+      "adminName": "Tamsir B. (Super Admin)",
+      "role": "SUPER_ADMIN",
+      "action": "ADMIN_LOGIN_SUCCESS",
+      "targetRecord": "Session started for superadmin",
+      "result": "SUCCESS"
+    },
     {
       "id": "log-1",
       "timestamp": "2026-09-12T00:42:14.404Z",
@@ -989,8 +1345,17 @@
       "name": "Tamsir B. (Super Admin)",
       "email": "tamsirb720@gmail.com",
       "role": "SUPER_ADMIN",
-      "lastLogin": "2026-09-13T00:42:14.404Z",
-      "active": true
+      "phone": "+220 788 1234",
+      "nationalIdOrNin": "GMB-NIN-940218-01A",
+      "department": "Executive Security & Platform Governance",
+      "securityClearance": "TIER_1_CORE",
+      "verifiedPersonal": true,
+      "verifiedBy": "National Civil Registry & Biometrics Office",
+      "verifiedAt": "2026-01-01T00:00:00.000Z",
+      "twoFactorEnabled": true,
+      "lastLogin": "2026-09-13T21:25:20.526Z",
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z"
     },
     {
       "id": "u-2",
@@ -998,8 +1363,17 @@
       "name": "Fatou Kinteh (Business Manager)",
       "email": "fatou@sohla.gm",
       "role": "BUSINESS_MANAGER",
+      "phone": "+220 311 8899",
+      "nationalIdOrNin": "GMB-NIN-891104-45B",
+      "department": "Merchant Onboarding & Partnerships",
+      "securityClearance": "TIER_2_OPERATIONAL",
+      "verifiedPersonal": true,
+      "verifiedBy": "Tamsir B. (Super Admin)",
+      "verifiedAt": "2026-01-05T09:30:00.000Z",
+      "twoFactorEnabled": true,
       "lastLogin": "2026-09-13T00:42:14.404Z",
-      "active": true
+      "active": true,
+      "createdAt": "2026-01-05T09:30:00.000Z"
     },
     {
       "id": "u-3",
@@ -1007,8 +1381,17 @@
       "name": "Bakary Sanneh (Content Manager)",
       "email": "bakary@sohla.gm",
       "role": "CONTENT_MANAGER",
+      "phone": "+220 994 5522",
+      "nationalIdOrNin": "GMB-NIN-920512-88C",
+      "department": "Billboard Ads & Media Moderation",
+      "securityClearance": "TIER_2_OPERATIONAL",
+      "verifiedPersonal": true,
+      "verifiedBy": "Tamsir B. (Super Admin)",
+      "verifiedAt": "2026-01-08T11:15:00.000Z",
+      "twoFactorEnabled": true,
       "lastLogin": "2026-09-13T00:42:14.404Z",
-      "active": true
+      "active": true,
+      "createdAt": "2026-01-08T11:15:00.000Z"
     },
     {
       "id": "u-4",
@@ -1016,8 +1399,17 @@
       "name": "Ida Manneh (Platform Analyst)",
       "email": "ida@sohla.gm",
       "role": "ANALYST",
+      "phone": "+220 220 7711",
+      "nationalIdOrNin": "GMB-NIN-960829-33D",
+      "department": "AI Telemetry & Business Intelligence",
+      "securityClearance": "TIER_3_SUPPORT",
+      "verifiedPersonal": true,
+      "verifiedBy": "Tamsir B. (Super Admin)",
+      "verifiedAt": "2026-01-12T14:20:00.000Z",
+      "twoFactorEnabled": true,
       "lastLogin": "2026-09-13T00:42:14.404Z",
-      "active": true
+      "active": true,
+      "createdAt": "2026-01-12T14:20:00.000Z"
     },
     {
       "id": "u-5",
@@ -1025,8 +1417,17 @@
       "name": "Lamin Bojang (Customer Support)",
       "email": "support@sohla.gm",
       "role": "SUPPORT",
+      "phone": "+220 665 4321",
+      "nationalIdOrNin": "GMB-NIN-981203-12E",
+      "department": "Citizen Care & Emergency Helpdesk",
+      "securityClearance": "TIER_3_SUPPORT",
+      "verifiedPersonal": true,
+      "verifiedBy": "Tamsir B. (Super Admin)",
+      "verifiedAt": "2026-01-15T08:45:00.000Z",
+      "twoFactorEnabled": true,
       "lastLogin": "2026-09-13T00:42:14.404Z",
-      "active": true
+      "active": true,
+      "createdAt": "2026-01-15T08:45:00.000Z"
     }
   ]
 }

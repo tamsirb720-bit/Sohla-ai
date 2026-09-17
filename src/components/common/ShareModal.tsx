@@ -34,7 +34,11 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
   if (!isOpen || !shareData) return null;
 
-  const currentUrl = shareData.url || (typeof window !== 'undefined' ? window.location.href : 'https://ais-pre-nix543m54yoyz6bcrozhbl-123613482809.europe-west2.run.app');
+  const currentUrl = shareData.url || (
+    typeof window !== 'undefined'
+      ? (window.location.origin && window.location.origin !== 'null' ? window.location.origin : window.location.href)
+      : 'https://ais-pre-nix543m54yoyz6bcrozhbl-123613482809.europe-west2.run.app'
+  );
   
   // Clean, unified share string
   const fullShareText = `${shareData.text}\n\n${currentUrl}`;

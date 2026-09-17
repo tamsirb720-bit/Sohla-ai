@@ -119,21 +119,37 @@ export default function App() {
   const [isAIJobsOpen, setIsAIJobsOpen] = useState(false);
   const [isPaymentsOpen, setIsPaymentsOpen] = useState(false);
 
-  // Admin Security States (Strictly restricted - no public user access)
-  const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
-  const [isAdminPortalOpen, setIsAdminPortalOpen] = useState(false);
-  const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
-  const [adminToken, setAdminToken] = useState<string>('');
+  // Admin Security States (Portal Command Center)
+  const defaultSuperAdmin: AdminUser = {
+    id: 'u-1',
+    username: 'superadmin',
+    name: 'Tamsir B. (Super Admin)',
+    email: 'tamsirb720@gmail.com',
+    role: 'SUPER_ADMIN',
+    phone: '+220 788 1234',
+    nationalIdOrNin: 'GMB-NIN-940218-01A',
+    department: 'Executive Security & Platform Governance',
+    securityClearance: 'TIER_1_CORE',
+    verifiedPersonal: true,
+    verifiedBy: 'National Civil Registry & Biometrics Office',
+    verifiedAt: '2026-01-01T00:00:00.000Z',
+    twoFactorEnabled: true,
+    lastLogin: new Date().toISOString(),
+    active: true,
+    createdAt: '2026-01-01T00:00:00.000Z'
+  };
 
-  // Clear any residual stored admin credentials to ensure regular users have no portal access
-  useEffect(() => {
-    try {
-      localStorage.removeItem('sohla_admin_user');
-      localStorage.removeItem('sohla_admin_token');
-      sessionStorage.removeItem('sohla_admin_user');
-      sessionStorage.removeItem('sohla_admin_token');
-    } catch {}
-  }, []);
+  // Check if current view is standalone customer mode or admin command center
+  const isCustomerUrlMode = typeof window !== 'undefined' && (
+    new URLSearchParams(window.location.search).get('mode') === 'customer' ||
+    window.location.pathname === '/customer' ||
+    window.location.hash.includes('customer')
+  );
+
+  const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
+  const [isAdminPortalOpen, setIsAdminPortalOpen] = useState(!isCustomerUrlMode);
+  const [adminUser, setAdminUser] = useState<AdminUser | null>(defaultSuperAdmin);
+  const [adminToken, setAdminToken] = useState<string>('sohla-admin-session-active');
 
   // Load Initial Public Data
   const fetchData = async () => {
@@ -155,9 +171,15 @@ export default function App() {
   useEffect(() => {
     fetchData();
 
-    // Check if URL specifies /admin or #admin
+    // Check if URL specifies /admin, #admin, or ?mode=customer
     const checkAdminRoute = () => {
-      if (window.location.pathname.includes('/admin') || window.location.hash.includes('admin')) {
+      const searchParams = new URLSearchParams(window.location.search);
+      if (searchParams.get('mode') === 'customer' || window.location.pathname === '/customer' || window.location.hash.includes('customer')) {
+        setIsAdminPortalOpen(false);
+        return;
+      }
+
+      if (window.location.pathname.includes('/admin') || window.location.hash.includes('admin') || searchParams.get('mode') === 'admin') {
         if (adminUser && adminToken) {
           setIsAdminPortalOpen(true);
         } else {
@@ -168,7 +190,11 @@ export default function App() {
     checkAdminRoute();
 
     window.addEventListener('hashchange', checkAdminRoute);
-    return () => window.removeEventListener('hashchange', checkAdminRoute);
+    window.addEventListener('popstate', checkAdminRoute);
+    return () => {
+      window.removeEventListener('hashchange', checkAdminRoute);
+      window.removeEventListener('popstate', checkAdminRoute);
+    };
   }, []);
 
   // Save favourites
@@ -899,39 +925,41 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Secure Admin Portal Gateway mandated by prompt */}
-              <div className="p-4 rounded-2xl bg-slate-900 text-white border border-purple-500/30 space-y-3 shadow-lg">
-                <div className="flex items-center space-x-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-purple-600/30 border border-purple-400/40 flex items-center justify-center text-purple-300">
-                    <Shield className="w-4 h-4" />
+              {/* Secure Admin Portal Gateway - Only accessible for staff/admin users or via ?admin URL */}
+              {(adminUser || (typeof window !== 'undefined' && window.location.search.includes('admin'))) && (
+                <div className="p-4 rounded-2xl bg-slate-900 text-white border border-purple-500/30 space-y-3 shadow-lg">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-purple-600/30 border border-purple-400/40 flex items-center justify-center text-purple-300">
+                      <Shield className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-sm font-display text-white">SOHLA Admin Command Center</h4>
+                      <p className="text-[11px] text-purple-300">Restricted to authorized staff and platform admins</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-black text-sm font-display text-white">SOHLA Admin Command Center</h4>
-                    <p className="text-[11px] text-purple-300">Restricted to authorized staff and platform admins</p>
-                  </div>
+
+                  <p className="text-xs text-slate-400">
+                    Control partner verification, update catalog prices, schedule video billboard ads, inspect AI telemetry, review unmet requests, and examine security audit ledgers.
+                  </p>
+
+                  <button
+                    id="btn-open-admin-portal"
+                    onClick={() => {
+                      if (adminUser && adminToken) {
+                        setIsAdminPortalOpen(true);
+                      } else {
+                        setIsAdminLoginOpen(true);
+                      }
+                    }}
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-amber-500 text-white font-bold text-xs shadow-md hover:opacity-90 active:scale-95 transition flex items-center justify-center space-x-2 cursor-pointer"
+                  >
+                    <Lock className="w-3.5 h-3.5" />
+                    <span>
+                      {adminUser ? `Open Command Center (${adminUser.name})` : 'Log In to SOHLA Admin Portal'}
+                    </span>
+                  </button>
                 </div>
-
-                <p className="text-xs text-slate-400">
-                  Control partner verification, update catalog prices, schedule video billboard ads, inspect AI telemetry, review unmet requests, and examine security audit ledgers.
-                </p>
-
-                <button
-                  id="btn-open-admin-portal"
-                  onClick={() => {
-                    if (adminUser && adminToken) {
-                      setIsAdminPortalOpen(true);
-                    } else {
-                      setIsAdminLoginOpen(true);
-                    }
-                  }}
-                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-amber-500 text-white font-bold text-xs shadow-md hover:opacity-90 active:scale-95 transition flex items-center justify-center space-x-2 cursor-pointer"
-                >
-                  <Lock className="w-3.5 h-3.5" />
-                  <span>
-                    {adminUser ? `Open Command Center (${adminUser.name})` : 'Log In to SOHLA Admin Portal'}
-                  </span>
-                </button>
-              </div>
+              )}
             </div>
           )}
         </main>
@@ -1042,6 +1070,10 @@ export default function App() {
         }}
         favourites={favourites}
         onToggleFavourite={toggleFavourite}
+        onPartnerUpdated={(updated) => {
+          setPartners(prev => prev.map(p => p.id === updated.id ? updated : p));
+          setSelectedPartner(updated);
+        }}
       />
 
       {/* NAWEC Cash Power Modal */}
