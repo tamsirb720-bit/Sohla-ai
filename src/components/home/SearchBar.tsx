@@ -22,7 +22,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onOpenAI }) => {
     <div className="w-full px-4 pt-3 pb-1">
       <form onSubmit={handleSubmit} className="relative flex items-center w-full group">
         {/* Search Icon */}
-        <div className="absolute left-4 text-slate-400 group-focus-within:text-amber-500 transition-colors pointer-events-none">
+        <div className="absolute left-4 text-[#8C7A6B] group-focus-within:text-amber-600 transition-colors pointer-events-none">
           <Search className="w-5 h-5" />
         </div>
 
@@ -33,24 +33,24 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onOpenAI }) => {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="What are you looking for in The Gambia?"
-          className="w-full h-13 pl-12 pr-14 rounded-full bg-white border border-slate-200/90 text-slate-800 placeholder-slate-400 text-sm sm:text-base font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition duration-300"
+          className="w-full h-13 pl-12 pr-14 rounded-2xl sm:rounded-full bg-[#FFFFFF] border border-[#E8DFD3] text-[#241A12] placeholder-[#9E8E80] text-sm sm:text-base font-medium shadow-sm hover:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition duration-300"
         />
 
-        {/* Action Button: Vibrant Orange Circle with Arrow */}
+        {/* Action Button: Warm African Gold / Amber Circle with Arrow */}
         <button
           id="btn-search-submit"
           type="submit"
-          className="absolute right-2 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 hover:brightness-110 text-white flex items-center justify-center shadow-md active:scale-90 transition cursor-pointer animate-gradient-shift"
+          className="absolute right-2 w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:brightness-105 text-white flex items-center justify-center shadow-md active:scale-95 transition cursor-pointer"
           title="Search with SOHLA AI"
         >
           <ArrowRight className="w-5 h-5 stroke-[2.5]" />
         </button>
       </form>
 
-      {/* Subtle quick tags */}
-      <div className="flex items-center space-x-1.5 overflow-x-auto py-2 px-1 text-[11px] text-slate-500 no-scrollbar">
-        <span className="flex items-center text-amber-600 font-semibold shrink-0">
-          <Sparkles className="w-3 h-3 mr-1 animate-spin-slow text-amber-500" />
+      {/* Subtle quick tags with warm African marketplace styling */}
+      <div className="flex items-center space-x-1.5 overflow-x-auto py-2 px-1 text-[11px] text-[#6E5B4B] no-scrollbar">
+        <span className="flex items-center text-amber-700 font-bold shrink-0">
+          <Sparkles className="w-3.5 h-3.5 mr-1 text-amber-500" />
           Suggestions:
         </span>
         {['Fish Benachin', 'NAWEC Meter', 'Yellow Taxi', 'Samsung Galaxy', 'Hair Braiding', 'GRA Tax'].map((item) => (
@@ -58,7 +58,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onOpenAI }) => {
             key={item}
             type="button"
             onClick={() => onSearch(item)}
-            className="px-2.5 py-0.5 rounded-full bg-slate-200/70 hover:bg-amber-100 hover:text-amber-900 text-slate-700 whitespace-nowrap transition cursor-pointer active:scale-95"
+            className="px-2.5 py-1 rounded-full bg-[#F4EDE2] hover:bg-amber-100 hover:text-amber-900 text-[#4A3B2C] border border-[#E8DDCF] whitespace-nowrap font-medium transition cursor-pointer active:scale-95"
           >
             {item}
           </button>
