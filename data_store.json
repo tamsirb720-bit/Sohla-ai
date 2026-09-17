@@ -1147,7 +1147,7 @@
       "targetCategory": "ALL",
       "startDate": "2026-01-01",
       "endDate": "2026-12-31",
-      "impressions": 1451,
+      "impressions": 1548,
       "clicks": 345
     },
     {
@@ -1166,7 +1166,7 @@
       "targetCategory": "BUY CASH POWER (NAWEC)",
       "startDate": "2026-01-01",
       "endDate": "2026-12-31",
-      "impressions": 1011,
+      "impressions": 1105,
       "clicks": 215
     },
     {
@@ -1185,11 +1185,31 @@
       "targetCategory": "FOOD & RESTAURANTS",
       "startDate": "2026-03-01",
       "endDate": "2026-10-31",
-      "impressions": 771,
+      "impressions": 866,
       "clicks": 160
     }
   ],
   "auditLogs": [
+    {
+      "id": "log-1789657218073-zic1",
+      "timestamp": "2026-09-17T15:00:18.073Z",
+      "adminId": "current-session",
+      "adminName": "Ebrima Ceesay",
+      "role": "BUSINESS_OWNER",
+      "action": "PROFILE_CHANGES_SUBMITTED",
+      "targetRecord": "Kairaba Tech Hub & Gadgets",
+      "result": "SUCCESS"
+    },
+    {
+      "id": "log-1789657214901-sn7p",
+      "timestamp": "2026-09-17T15:00:14.901Z",
+      "adminId": "current-session",
+      "adminName": "Ebrima Ceesay",
+      "role": "MERCHANT",
+      "action": "BUSINESS_CLAIM_SUBMITTED",
+      "targetRecord": "Kairaba Tech Hub & Gadgets",
+      "result": "SUCCESS"
+    },
     {
       "id": "log-1789334720526-94eh",
       "timestamp": "2026-09-13T21:25:20.526Z",
@@ -1429,5 +1449,104 @@
       "active": true,
       "createdAt": "2026-01-15T08:45:00.000Z"
     }
-  ]
+  ],
+  "newsArticles": [],
+  "platformEvents": [],
+  "entertainmentItems": [],
+  "aiKnowledgeEntries": [],
+  "businessOwners": [
+    {
+      "id": "own-claim-1789657214900",
+      "partnerId": "bp-2",
+      "partnerName": "Kairaba Tech Hub & Gadgets",
+      "ownerName": "Ebrima Ceesay",
+      "phone": "+220 999 8888",
+      "email": "ebrima@example.gm",
+      "nationalIdOrNin": "",
+      "status": "pending_verification",
+      "claimedAt": "2026-09-17T15:00:14.900Z",
+      "canEditProfile": true,
+      "canManageCatalog": true,
+      "canManageMedia": true
+    },
+    {
+      "id": "own-auto-1789657208682",
+      "partnerId": "bp-1",
+      "partnerName": "Senegambia Beach Terrace Restaurant",
+      "ownerName": "Fatoumatta Jallow",
+      "phone": "+220 788 1234",
+      "email": "info@senegambiaterrace.gm",
+      "status": "active",
+      "claimedAt": "2026-09-17T15:00:08.682Z",
+      "verifiedAt": "2026-09-17T15:00:08.682Z",
+      "canEditProfile": true,
+      "canManageCatalog": true,
+      "canManageMedia": true,
+      "lastLogin": "2026-09-17T15:00:08.682Z"
+    }
+  ],
+  "approvals": [
+    {
+      "id": "appr-1789657218073",
+      "entityType": "business",
+      "entityId": "bp-2",
+      "entityName": "Kairaba Tech Hub & Gadgets",
+      "submittedBy": "Ebrima Ceesay",
+      "submittedRole": "BUSINESS_OWNER",
+      "submissionDate": "2026-09-17T15:00:18.073Z",
+      "status": "pending",
+      "payload": {
+        "description": "Updated test description"
+      }
+    },
+    {
+      "id": "appr-1789657214900",
+      "entityType": "owner_claim",
+      "entityId": "bp-2",
+      "entityName": "Kairaba Tech Hub & Gadgets",
+      "submittedBy": "Ebrima Ceesay",
+      "submittedRole": "MERCHANT_APPLICANT",
+      "submissionDate": "2026-09-17T15:00:14.900Z",
+      "status": "pending",
+      "payload": {
+        "id": "own-claim-1789657214900",
+        "partnerId": "bp-2",
+        "partnerName": "Kairaba Tech Hub & Gadgets",
+        "ownerName": "Ebrima Ceesay",
+        "phone": "+220 999 8888",
+        "email": "ebrima@example.gm",
+        "nationalIdOrNin": "",
+        "status": "pending_verification",
+        "claimedAt": "2026-09-17T15:00:14.900Z",
+        "canEditProfile": true,
+        "canManageCatalog": true,
+        "canManageMedia": true
+      }
+    }
+  ],
+  "paymentSettings": {
+    "cashPowerEnabled": true,
+    "governmentPaymentsEnabled": true,
+    "waveEnabled": true,
+    "qmoneyEnabled": true,
+    "afrimoneyEnabled": true,
+    "platformCommissionPercent": 2.5,
+    "cashPowerFeeGMD": 0,
+    "merchantCurrency": "GMD",
+    "supportContact": "+220 788 1234",
+    "payoutSchedule": "DAILY_AUTOMATIC",
+    "testMode": true
+  },
+  "platformSettings": {
+    "platformName": "SOHLA AI",
+    "country": "The Gambia",
+    "currency": "GMD (Dalasi)",
+    "maintenanceMode": false,
+    "requireApprovalForEdits": true,
+    "aiModel": "gemini-3.8-flash",
+    "defaultDeliveryRadiusKm": 25,
+    "businessClaimingEnabled": true,
+    "contactHotline": "+220 788 1234",
+    "supportEmail": "operations@sohla.gm"
+  }
 }

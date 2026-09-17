@@ -54,6 +54,7 @@ interface AdminPortalProps {
   onClosePortal: () => void;
   onSyncData: () => void;
   initialTab?: AdminTab;
+  onSwitchToControlCenter?: () => void;
 }
 
 export type { AdminTab };
@@ -75,7 +76,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   onLogout,
   onClosePortal,
   onSyncData,
-  initialTab = 'dashboard'
+  initialTab = 'dashboard',
+  onSwitchToControlCenter
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>(initialTab);
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -444,6 +446,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-purple-400' : ''}`} />
           </button>
+
+          {onSwitchToControlCenter && (
+            <button
+              onClick={onSwitchToControlCenter}
+              className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold transition flex items-center space-x-1.5 cursor-pointer shadow"
+              title="Open Private SOHLA Control Center"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>SOHLA Control Center</span>
+            </button>
+          )}
 
           <button
             onClick={() => window.open(window.location.origin + '?mode=customer', '_blank')}

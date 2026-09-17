@@ -26,7 +26,8 @@ import {
   Bookmark,
   Receipt,
   History,
-  Trash2
+  Trash2,
+  Building2
 } from 'lucide-react';
 import {
   CategoryInfo,
@@ -46,6 +47,8 @@ import { AIJobsModal } from './components/utilities/AIJobsModal';
 import { PaymentsModal } from './components/utilities/PaymentsModal';
 import { AdminLoginModal } from './components/admin/AdminLoginModal';
 import { AdminPortal } from './components/admin/AdminPortal';
+import { ControlCenter } from './components/control-center/ControlCenter';
+import { PartnerPortalModal } from './components/business/PartnerPortalModal';
 import { SohlaLogo } from './components/common/SohlaLogo';
 import { ShareModal, ShareDataPayload } from './components/common/ShareModal';
 
@@ -118,6 +121,8 @@ export default function App() {
   const [isGovPaymentsOpen, setIsGovPaymentsOpen] = useState(false);
   const [isAIJobsOpen, setIsAIJobsOpen] = useState(false);
   const [isPaymentsOpen, setIsPaymentsOpen] = useState(false);
+  const [isPartnerPortalOpen, setIsPartnerPortalOpen] = useState(false);
+  const [selectedPartnerForPortal, setSelectedPartnerForPortal] = useState<BusinessPartner | null>(null);
 
   // Admin Security States (Portal Command Center)
   const defaultSuperAdmin: AdminUser = {
@@ -147,7 +152,8 @@ export default function App() {
   );
 
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
-  const [isAdminPortalOpen, setIsAdminPortalOpen] = useState(!isCustomerUrlMode);
+  const [isAdminPortalOpen, setIsAdminPortalOpen] = useState(false);
+  const [adminViewMode, setAdminViewMode] = useState<'control_center' | 'classic'>('control_center');
   const [adminUser, setAdminUser] = useState<AdminUser | null>(defaultSuperAdmin);
   const [adminToken, setAdminToken] = useState<string>('sohla-admin-session-active');
 
@@ -171,7 +177,7 @@ export default function App() {
   useEffect(() => {
     fetchData();
 
-    // Check if URL specifies /admin, #admin, or ?mode=customer
+    // Check if URL specifies /admin, #admin, #control-center, or ?mode=customer
     const checkAdminRoute = () => {
       const searchParams = new URLSearchParams(window.location.search);
       if (searchParams.get('mode') === 'customer' || window.location.pathname === '/customer' || window.location.hash.includes('customer')) {
@@ -179,7 +185,24 @@ export default function App() {
         return;
       }
 
+      if (window.location.hash.includes('partner-portal') || searchParams.get('mode') === 'partner-portal') {
+        setIsPartnerPortalOpen(true);
+        setIsAdminPortalOpen(false);
+        return;
+      }
+
+      if (window.location.hash.includes('control-center') || searchParams.get('mode') === 'control-center') {
+        setAdminViewMode('control_center');
+        if (adminUser && adminToken) {
+          setIsAdminPortalOpen(true);
+        } else {
+          setIsAdminLoginOpen(true);
+        }
+        return;
+      }
+
       if (window.location.pathname.includes('/admin') || window.location.hash.includes('admin') || searchParams.get('mode') === 'admin') {
+        setAdminViewMode('classic');
         if (adminUser && adminToken) {
           setIsAdminPortalOpen(true);
         } else {
@@ -925,6 +948,35 @@ export default function App() {
                 </div>
               </div>
 
+              {/* SOHLA Business Owner / Merchant Gateway */}
+              <div className="p-4 rounded-2xl bg-white border border-stone-200 space-y-3 shadow-xs">
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center font-bold">
+                    <Building2 className="w-4 h-4 text-amber-700" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-stone-900">For Business Owners & Merchants</h4>
+                    <p className="text-[11px] text-stone-500">Claim your business listing or manage catalog items</p>
+                  </div>
+                </div>
+
+                <p className="text-xs text-stone-600 leading-relaxed">
+                  Keep your phone number, opening hours, delivery fees, and product prices updated in real-time across SOHLA and the AI brain.
+                </p>
+
+                <button
+                  id="btn-open-partner-portal"
+                  onClick={() => {
+                    setSelectedPartnerForPortal(null);
+                    setIsPartnerPortalOpen(true);
+                  }}
+                  className="w-full py-2.5 px-3 rounded-xl bg-stone-900 hover:bg-stone-800 text-amber-400 font-bold text-xs transition flex items-center justify-center space-x-1.5 cursor-pointer shadow-xs"
+                >
+                  <Briefcase className="w-3.5 h-3.5" />
+                  <span>Enter Business Owner Portal</span>
+                </button>
+              </div>
+
               {/* Secure Admin Portal Gateway - Only accessible for staff/admin users or via ?admin URL */}
               {(adminUser || (typeof window !== 'undefined' && window.location.search.includes('admin'))) && (
                 <div className="p-4 rounded-2xl bg-slate-900 text-white border border-purple-500/30 space-y-3 shadow-lg">
@@ -942,22 +994,39 @@ export default function App() {
                     Control partner verification, update catalog prices, schedule video billboard ads, inspect AI telemetry, review unmet requests, and examine security audit ledgers.
                   </p>
 
-                  <button
-                    id="btn-open-admin-portal"
-                    onClick={() => {
-                      if (adminUser && adminToken) {
-                        setIsAdminPortalOpen(true);
-                      } else {
-                        setIsAdminLoginOpen(true);
-                      }
-                    }}
-                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-amber-500 text-white font-bold text-xs shadow-md hover:opacity-90 active:scale-95 transition flex items-center justify-center space-x-2 cursor-pointer"
-                  >
-                    <Lock className="w-3.5 h-3.5" />
-                    <span>
-                      {adminUser ? `Open Command Center (${adminUser.name})` : 'Log In to SOHLA Admin Portal'}
-                    </span>
-                  </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      id="btn-open-control-center"
+                      onClick={() => {
+                        setAdminViewMode('control_center');
+                        if (adminUser && adminToken) {
+                          setIsAdminPortalOpen(true);
+                        } else {
+                          setIsAdminLoginOpen(true);
+                        }
+                      }}
+                      className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs shadow-md active:scale-95 transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>SOHLA Control Center</span>
+                    </button>
+
+                    <button
+                      id="btn-open-admin-portal"
+                      onClick={() => {
+                        setAdminViewMode('classic');
+                        if (adminUser && adminToken) {
+                          setIsAdminPortalOpen(true);
+                        } else {
+                          setIsAdminLoginOpen(true);
+                        }
+                      }}
+                      className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs shadow-sm active:scale-95 transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                    >
+                      <Lock className="w-3.5 h-3.5 text-purple-400" />
+                      <span>Classic Admin Portal</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -1074,6 +1143,22 @@ export default function App() {
           setPartners(prev => prev.map(p => p.id === updated.id ? updated : p));
           setSelectedPartner(updated);
         }}
+        onOpenPartnerPortal={(p) => {
+          setSelectedPartnerForPortal(p);
+          setIsPartnerPortalOpen(true);
+        }}
+      />
+
+      {/* Business Owner / Merchant Portal Modal */}
+      <PartnerPortalModal
+        isOpen={isPartnerPortalOpen}
+        onClose={() => setIsPartnerPortalOpen(false)}
+        partners={partners}
+        initialPartner={selectedPartnerForPortal}
+        onPartnerUpdated={(updated) => {
+          setPartners(prev => prev.map(p => p.id === updated.id ? updated : p));
+          if (selectedPartner?.id === updated.id) setSelectedPartner(updated);
+        }}
       />
 
       {/* NAWEC Cash Power Modal */}
@@ -1109,15 +1194,26 @@ export default function App() {
         onLoginSuccess={handleAdminLoginSuccess}
       />
 
-      {/* Full-Screen Private Admin Portal Command Center */}
+      {/* Full-Screen Private Admin Portal or SOHLA Control Center */}
       {isAdminPortalOpen && adminUser && (
-        <AdminPortal
-          currentUser={adminUser}
-          token={adminToken}
-          onLogout={handleAdminLogout}
-          onClosePortal={() => setIsAdminPortalOpen(false)}
-          onSyncData={fetchData}
-        />
+        adminViewMode === 'control_center' ? (
+          <ControlCenter
+            currentUser={adminUser}
+            token={adminToken}
+            onLogout={handleAdminLogout}
+            onClose={() => setIsAdminPortalOpen(false)}
+            onSwitchToClassicAdmin={() => setAdminViewMode('classic')}
+          />
+        ) : (
+          <AdminPortal
+            currentUser={adminUser}
+            token={adminToken}
+            onLogout={handleAdminLogout}
+            onClosePortal={() => setIsAdminPortalOpen(false)}
+            onSyncData={fetchData}
+            onSwitchToControlCenter={() => setAdminViewMode('control_center')}
+          />
+        )
       )}
 
       {/* Global Multi-Platform Share Modal */}

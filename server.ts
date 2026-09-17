@@ -35,6 +35,14 @@ interface DBStructure {
   cashPowerTransactions: any[];
   governmentPayments: any[];
   adminUsers: any[];
+  newsArticles?: any[];
+  platformEvents?: any[];
+  entertainmentItems?: any[];
+  aiKnowledgeEntries?: any[];
+  businessOwners?: any[];
+  approvals?: any[];
+  paymentSettings?: any;
+  platformSettings?: any;
 }
 
 const DB_FILE = path.join(process.cwd(), 'data_store.json');
@@ -661,6 +669,43 @@ if (fs.existsSync(DB_FILE)) {
           };
         });
       }
+
+      // Initialize Control Center collections if not present
+      if (!db.newsArticles) db.newsArticles = [];
+      if (!db.platformEvents) db.platformEvents = [];
+      if (!db.entertainmentItems) db.entertainmentItems = [];
+      if (!db.aiKnowledgeEntries) db.aiKnowledgeEntries = [];
+      if (!db.businessOwners) db.businessOwners = [];
+      if (!db.approvals) db.approvals = [];
+      if (!db.paymentSettings) {
+        db.paymentSettings = {
+          cashPowerEnabled: true,
+          governmentPaymentsEnabled: true,
+          waveEnabled: true,
+          qmoneyEnabled: true,
+          afrimoneyEnabled: true,
+          platformCommissionPercent: 2.5,
+          cashPowerFeeGMD: 0,
+          merchantCurrency: 'GMD',
+          supportContact: '+220 788 1234',
+          payoutSchedule: 'DAILY_AUTOMATIC',
+          testMode: true
+        };
+      }
+      if (!db.platformSettings) {
+        db.platformSettings = {
+          platformName: 'SOHLA AI',
+          country: 'The Gambia',
+          currency: 'GMD (Dalasi)',
+          maintenanceMode: false,
+          requireApprovalForEdits: true,
+          aiModel: 'gemini-3.8-flash',
+          defaultDeliveryRadiusKm: 25,
+          businessClaimingEnabled: true,
+          contactHotline: '+220 788 1234',
+          supportEmail: 'operations@sohla.gm'
+        };
+      }
     }
   } catch (err) {
     console.warn('Could not read existing db file, using fresh initial seed:', err);
@@ -1236,6 +1281,12 @@ Services: ${srvList || 'None'}
 Promotions: ${p.promotions || 'None'}`;
   }).join('\n\n');
 
+  // Additive active AI Knowledge entries managed via Private Control Center
+  const activeKnowledge = (db.aiKnowledgeEntries || []).filter((k: any) => k.active);
+  const knowledgeSummary = activeKnowledge.length > 0
+    ? `\nSPECIAL ANNOUNCEMENTS & OFFICIAL KNOWLEDGE:\n` + activeKnowledge.map((k: any) => `• [${k.category}] ${k.title}: ${k.content}`).join('\n')
+    : '';
+
   // Grounding prompt enforcing SOHLA Gambian Persona and Zero Hallucination
   const systemInstruction = `You are SOHLA AI — The Gambia's premier All-in-One Intelligent Assistant.
 Your core mission is to assist residents, visitors, and businesses across Banjul, Serekunda, Senegambia, Brusubi, Fajara, and the entire nation of The Gambia.
@@ -1257,6 +1308,7 @@ CRITICAL OPERATIONAL RULES:
 
 LIVE VERIFIED SOHLA DATABASE:
 ${catalogSummary}
+${knowledgeSummary}
 `;
 
   let reply = '';
@@ -1872,6 +1924,560 @@ app.post('/api/gov/pay', (req: Request, res: Response) => {
     transaction: tx,
     message: 'Payment recorded with official receipt reference.'
   });
+});
+
+// ===========================================================================
+// SOHLA PRIVATE CONTROL CENTER API ENDPOINTS (SAFE, ADDITIVE)
+// ===========================================================================
+
+// --- News Management ---
+app.get('/api/control-center/news', (req: Request, res: Response) => {
+  res.json(db.newsArticles || []);
+});
+
+app.post('/api/control-center/news', (req: Request, res: Response) => {
+  const item = req.body;
+  const newArticle = {
+    id: `news-${Date.now()}`,
+    title: item.title || 'Untitled Article',
+    slug: (item.title || 'article').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    summary: item.summary || '',
+    content: item.content || '',
+    category: item.category || 'Local Business',
+    author: item.author || req.body._adminName || 'Editorial Team',
+    coverImage: item.coverImage || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=80',
+    status: item.status || 'draft',
+    publishedAt: item.status === 'published' ? new Date().toISOString() : undefined,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    views: 0,
+    tags: item.tags || ['Gambia', 'SOHLA']
+  };
+
+  db.newsArticles = db.newsArticles || [];
+  db.newsArticles.unshift(newArticle);
+  logAudit(req.body._adminName || 'Admin', 'CONTENT_MANAGER', 'NEWS_CREATED', newArticle.title, undefined, JSON.stringify(newArticle));
+  saveDB();
+  res.json({ success: true, article: newArticle });
+});
+
+app.put('/api/control-center/news/:id', (req: Request, res: Response) => {
+  const item = (db.newsArticles || []).find((a: any) => a.id === req.params.id);
+  if (!item) {
+    res.status(404).json({ error: 'Article not found' });
+    return;
+  }
+  const oldTitle = item.title;
+  Object.assign(item, req.body, { updatedAt: new Date().toISOString() });
+  if (req.body.status === 'published' && !item.publishedAt) {
+    item.publishedAt = new Date().toISOString();
+  }
+  logAudit(req.body._adminName || 'Admin', 'CONTENT_MANAGER', 'NEWS_UPDATED', item.title, oldTitle);
+  saveDB();
+  res.json({ success: true, article: item });
+});
+
+app.delete('/api/control-center/news/:id', (req: Request, res: Response) => {
+  const idx = (db.newsArticles || []).findIndex((a: any) => a.id === req.params.id);
+  if (idx === -1) {
+    res.status(404).json({ error: 'Article not found' });
+    return;
+  }
+  const removed = db.newsArticles.splice(idx, 1)[0];
+  logAudit(req.body._adminName || 'Admin', 'CONTENT_MANAGER', 'NEWS_DELETED', removed.title);
+  saveDB();
+  res.json({ success: true, message: `Article ${removed.title} deleted` });
+});
+
+// --- Events Management ---
+app.get('/api/control-center/events', (req: Request, res: Response) => {
+  res.json(db.platformEvents || []);
+});
+
+app.post('/api/control-center/events', (req: Request, res: Response) => {
+  const item = req.body;
+  const newEvent = {
+    id: `event-${Date.now()}`,
+    title: item.title || 'Upcoming Event',
+    description: item.description || '',
+    date: item.date || new Date().toISOString().split('T')[0],
+    time: item.time || '18:00',
+    location: item.location || 'Senegambia Strip',
+    image: item.image || 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80',
+    organizer: item.organizer || 'Gambian Event Organizer',
+    contact: item.contact || '+220 700 0000',
+    status: item.status || 'draft',
+    createdAt: new Date().toISOString(),
+    rsvpCount: 0
+  };
+
+  db.platformEvents = db.platformEvents || [];
+  db.platformEvents.unshift(newEvent);
+  logAudit(req.body._adminName || 'Admin', 'CONTENT_MANAGER', 'EVENT_CREATED', newEvent.title);
+  saveDB();
+  res.json({ success: true, event: newEvent });
+});
+
+app.put('/api/control-center/events/:id', (req: Request, res: Response) => {
+  const item = (db.platformEvents || []).find((e: any) => e.id === req.params.id);
+  if (!item) {
+    res.status(404).json({ error: 'Event not found' });
+    return;
+  }
+  Object.assign(item, req.body);
+  logAudit(req.body._adminName || 'Admin', 'CONTENT_MANAGER', 'EVENT_UPDATED', item.title);
+  saveDB();
+  res.json({ success: true, event: item });
+});
+
+app.delete('/api/control-center/events/:id', (req: Request, res: Response) => {
+  const idx = (db.platformEvents || []).findIndex((e: any) => e.id === req.params.id);
+  if (idx === -1) {
+    res.status(404).json({ error: 'Event not found' });
+    return;
+  }
+  const removed = db.platformEvents.splice(idx, 1)[0];
+  logAudit(req.body._adminName || 'Admin', 'CONTENT_MANAGER', 'EVENT_DELETED', removed.title);
+  saveDB();
+  res.json({ success: true, message: `Event ${removed.title} deleted` });
+});
+
+// --- Entertainment Management ---
+app.get('/api/control-center/entertainment', (req: Request, res: Response) => {
+  res.json(db.entertainmentItems || []);
+});
+
+app.post('/api/control-center/entertainment', (req: Request, res: Response) => {
+  const item = req.body;
+  const newItem = {
+    id: `ent-${Date.now()}`,
+    title: item.title || 'New Spotlight Showcase',
+    description: item.description || '',
+    mediaUrl: item.mediaUrl || 'https://assets.mixkit.co/videos/preview/mixkit-african-woman-smiling-while-using-a-mobile-phone-41804-large.mp4',
+    category: item.category || 'Spotlight',
+    type: item.type || 'video',
+    status: item.status || 'draft',
+    creator: item.creator || 'SOHLA Media',
+    createdAt: new Date().toISOString(),
+    duration: item.duration || '0:30'
+  };
+
+  db.entertainmentItems = db.entertainmentItems || [];
+  db.entertainmentItems.unshift(newItem);
+  logAudit(req.body._adminName || 'Admin', 'CONTENT_MANAGER', 'ENTERTAINMENT_CREATED', newItem.title);
+  saveDB();
+  res.json({ success: true, item: newItem });
+});
+
+app.put('/api/control-center/entertainment/:id', (req: Request, res: Response) => {
+  const item = (db.entertainmentItems || []).find((e: any) => e.id === req.params.id);
+  if (!item) {
+    res.status(404).json({ error: 'Entertainment item not found' });
+    return;
+  }
+  Object.assign(item, req.body);
+  logAudit(req.body._adminName || 'Admin', 'CONTENT_MANAGER', 'ENTERTAINMENT_UPDATED', item.title);
+  saveDB();
+  res.json({ success: true, item });
+});
+
+app.delete('/api/control-center/entertainment/:id', (req: Request, res: Response) => {
+  const idx = (db.entertainmentItems || []).findIndex((e: any) => e.id === req.params.id);
+  if (idx === -1) {
+    res.status(404).json({ error: 'Item not found' });
+    return;
+  }
+  const removed = db.entertainmentItems.splice(idx, 1)[0];
+  logAudit(req.body._adminName || 'Admin', 'CONTENT_MANAGER', 'ENTERTAINMENT_DELETED', removed.title);
+  saveDB();
+  res.json({ success: true, message: `Item ${removed.title} deleted` });
+});
+
+// --- AI Knowledge Base Management ---
+app.get('/api/control-center/ai-knowledge', (req: Request, res: Response) => {
+  res.json(db.aiKnowledgeEntries || []);
+});
+
+app.post('/api/control-center/ai-knowledge', (req: Request, res: Response) => {
+  const item = req.body;
+  const newEntry = {
+    id: `know-${Date.now()}`,
+    title: item.title || 'Knowledge Entry',
+    category: item.category || 'General Local Info',
+    content: item.content || '',
+    active: item.active !== false,
+    expiresAt: item.expiresAt || '',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    author: item.author || req.body._adminName || 'Admin',
+    priority: Number(item.priority || 1)
+  };
+
+  db.aiKnowledgeEntries = db.aiKnowledgeEntries || [];
+  db.aiKnowledgeEntries.unshift(newEntry);
+  logAudit(req.body._adminName || 'Admin', 'ADMIN', 'AI_KNOWLEDGE_ADDED', newEntry.title, undefined, newEntry.content);
+  saveDB();
+  res.json({ success: true, entry: newEntry });
+});
+
+app.put('/api/control-center/ai-knowledge/:id', (req: Request, res: Response) => {
+  const entry = (db.aiKnowledgeEntries || []).find((k: any) => k.id === req.params.id);
+  if (!entry) {
+    res.status(404).json({ error: 'Knowledge entry not found' });
+    return;
+  }
+  const old = entry.title;
+  Object.assign(entry, req.body, { updatedAt: new Date().toISOString() });
+  logAudit(req.body._adminName || 'Admin', 'ADMIN', 'AI_KNOWLEDGE_UPDATED', entry.title, old);
+  saveDB();
+  res.json({ success: true, entry });
+});
+
+app.delete('/api/control-center/ai-knowledge/:id', (req: Request, res: Response) => {
+  const idx = (db.aiKnowledgeEntries || []).findIndex((k: any) => k.id === req.params.id);
+  if (idx === -1) {
+    res.status(404).json({ error: 'Entry not found' });
+    return;
+  }
+  const removed = db.aiKnowledgeEntries.splice(idx, 1)[0];
+  logAudit(req.body._adminName || 'Admin', 'ADMIN', 'AI_KNOWLEDGE_DELETED', removed.title);
+  saveDB();
+  res.json({ success: true, message: `Knowledge entry ${removed.title} deleted` });
+});
+
+// --- Business Owners & Claiming Management ---
+app.get('/api/control-center/business-owners', (req: Request, res: Response) => {
+  res.json(db.businessOwners || []);
+});
+
+app.post('/api/control-center/business-owners', (req: Request, res: Response) => {
+  const b = req.body;
+  const partner = db.partners.find((p: any) => p.id === b.partnerId);
+  const newOwner = {
+    id: `own-${Date.now()}`,
+    partnerId: b.partnerId,
+    partnerName: partner ? partner.name : (b.partnerName || 'Unknown Partner'),
+    ownerName: b.ownerName || 'Business Owner',
+    phone: b.phone || '',
+    email: b.email || '',
+    nationalIdOrNin: b.nationalIdOrNin || '',
+    status: b.status || 'active',
+    claimedAt: new Date().toISOString(),
+    verifiedAt: b.status === 'active' ? new Date().toISOString() : undefined,
+    canEditProfile: b.canEditProfile !== false,
+    canManageCatalog: b.canManageCatalog !== false,
+    canManageMedia: b.canManageMedia !== false,
+    lastLogin: 'Never'
+  };
+
+  db.businessOwners = db.businessOwners || [];
+  db.businessOwners.unshift(newOwner);
+  logAudit(req.body._adminName || 'Admin', 'BUSINESS_MANAGER', 'OWNER_ACCOUNT_REGISTERED', newOwner.ownerName, undefined, JSON.stringify(newOwner));
+  saveDB();
+  res.json({ success: true, owner: newOwner });
+});
+
+app.put('/api/control-center/business-owners/:id', (req: Request, res: Response) => {
+  const owner = (db.businessOwners || []).find((o: any) => o.id === req.params.id);
+  if (!owner) {
+    res.status(404).json({ error: 'Owner record not found' });
+    return;
+  }
+  Object.assign(owner, req.body);
+  logAudit(req.body._adminName || 'Admin', 'BUSINESS_MANAGER', 'OWNER_ACCOUNT_UPDATED', owner.ownerName);
+  saveDB();
+  res.json({ success: true, owner });
+});
+
+app.delete('/api/control-center/business-owners/:id', (req: Request, res: Response) => {
+  const idx = (db.businessOwners || []).findIndex((o: any) => o.id === req.params.id);
+  if (idx === -1) {
+    res.status(404).json({ error: 'Owner not found' });
+    return;
+  }
+  const removed = db.businessOwners.splice(idx, 1)[0];
+  logAudit(req.body._adminName || 'Admin', 'BUSINESS_MANAGER', 'OWNER_ACCOUNT_REMOVED', removed.ownerName);
+  saveDB();
+  res.json({ success: true, message: `Owner ${removed.ownerName} removed` });
+});
+
+// Partner Portal: Claim a business
+app.post('/api/partner-portal/claim', (req: Request, res: Response) => {
+  const { partnerId, ownerName, phone, email, nationalIdOrNin } = req.body;
+  const partner = db.partners.find((p: any) => p.id === partnerId);
+  if (!partner) {
+    res.status(404).json({ error: 'Business not found in directory' });
+    return;
+  }
+
+  const existingClaim = (db.businessOwners || []).find((o: any) => o.partnerId === partnerId && o.status === 'active');
+  if (existingClaim) {
+    res.status(400).json({ error: 'This business already has an active verified owner.' });
+    return;
+  }
+
+  const newClaim = {
+    id: `own-claim-${Date.now()}`,
+    partnerId,
+    partnerName: partner.name,
+    ownerName,
+    phone,
+    email,
+    nationalIdOrNin: nationalIdOrNin || '',
+    status: 'pending_verification',
+    claimedAt: new Date().toISOString(),
+    canEditProfile: true,
+    canManageCatalog: true,
+    canManageMedia: true
+  };
+
+  db.businessOwners = db.businessOwners || [];
+  db.businessOwners.unshift(newClaim);
+
+  // Record approval request
+  db.approvals = db.approvals || [];
+  db.approvals.unshift({
+    id: `appr-${Date.now()}`,
+    entityType: 'owner_claim',
+    entityId: partnerId,
+    entityName: partner.name,
+    submittedBy: ownerName,
+    submittedRole: 'MERCHANT_APPLICANT',
+    submissionDate: new Date().toISOString(),
+    status: 'pending',
+    payload: newClaim
+  });
+
+  logAudit(ownerName, 'MERCHANT', 'BUSINESS_CLAIM_SUBMITTED', partner.name);
+  saveDB();
+
+  res.json({
+    success: true,
+    message: `Claim for "${partner.name}" submitted successfully. Our team will verify via phone ${phone}.`,
+    claim: newClaim
+  });
+});
+
+// Partner Portal: Merchant Login
+app.post('/api/partner-portal/login', (req: Request, res: Response) => {
+  const { phone, partnerId } = req.body;
+  const cleanPhone = (phone || '').replace(/[^0-9]/g, '');
+
+  let owner = (db.businessOwners || []).find((o: any) => {
+    const oPhone = (o.phone || '').replace(/[^0-9]/g, '');
+    return (oPhone && cleanPhone && oPhone.endsWith(cleanPhone.slice(-7))) || (partnerId && o.partnerId === partnerId);
+  });
+
+  if (!owner) {
+    // Check if phone matches partner phone directly
+    const matchingPartner = db.partners.find((p: any) => {
+      const pPhone = (p.phone || '').replace(/[^0-9]/g, '');
+      const pWa = (p.whatsapp || '').replace(/[^0-9]/g, '');
+      return (pPhone && cleanPhone && pPhone.endsWith(cleanPhone.slice(-7))) ||
+             (pWa && cleanPhone && pWa.endsWith(cleanPhone.slice(-7))) ||
+             (partnerId && p.id === partnerId);
+    });
+
+    if (matchingPartner) {
+      // Auto-provision merchant owner account for convenience
+      owner = {
+        id: `own-auto-${Date.now()}`,
+        partnerId: matchingPartner.id,
+        partnerName: matchingPartner.name,
+        ownerName: matchingPartner.owner || 'Merchant Owner',
+        phone: matchingPartner.phone,
+        email: matchingPartner.email || '',
+        status: 'active',
+        claimedAt: new Date().toISOString(),
+        verifiedAt: new Date().toISOString(),
+        canEditProfile: true,
+        canManageCatalog: true,
+        canManageMedia: true,
+        lastLogin: new Date().toISOString()
+      };
+      db.businessOwners = db.businessOwners || [];
+      db.businessOwners.unshift(owner);
+      saveDB();
+    }
+  }
+
+  if (owner) {
+    owner.lastLogin = new Date().toISOString();
+    saveDB();
+    const partner = db.partners.find((p: any) => p.id === owner.partnerId);
+    res.json({
+      success: true,
+      owner,
+      partner,
+      token: `merchant-sess-${Date.now()}-${Math.random().toString(36).substring(2)}`
+    });
+    return;
+  }
+
+  res.status(401).json({ error: 'No registered merchant found matching these details. Please claim your business first.' });
+});
+
+// Partner Portal: Submit update for admin review
+app.post('/api/partner-portal/submit-update', (req: Request, res: Response) => {
+  const { partnerId, ownerId, changes } = req.body;
+  const partner = db.partners.find((p: any) => p.id === partnerId);
+  if (!partner) {
+    res.status(404).json({ error: 'Business not found' });
+    return;
+  }
+
+  const approval = {
+    id: `appr-${Date.now()}`,
+    entityType: 'business' as const,
+    entityId: partnerId,
+    entityName: partner.name,
+    submittedBy: req.body.ownerName || 'Merchant Owner',
+    submittedRole: 'BUSINESS_OWNER',
+    submissionDate: new Date().toISOString(),
+    status: 'pending' as const,
+    payload: changes
+  };
+
+  db.approvals = db.approvals || [];
+  db.approvals.unshift(approval);
+  logAudit(approval.submittedBy, 'BUSINESS_OWNER', 'PROFILE_CHANGES_SUBMITTED', partner.name);
+  saveDB();
+
+  res.json({
+    success: true,
+    message: 'Changes submitted to SOHLA Operations team for quick approval.',
+    approval
+  });
+});
+
+// --- Approvals Queue Management ---
+app.get('/api/control-center/approvals', (req: Request, res: Response) => {
+  res.json(db.approvals || []);
+});
+
+app.post('/api/control-center/approvals/:id/review', (req: Request, res: Response) => {
+  const { action, reason, _adminName } = req.body; // 'approve' | 'reject'
+  const item = (db.approvals || []).find((a: any) => a.id === req.params.id);
+  if (!item) {
+    res.status(404).json({ error: 'Approval request not found' });
+    return;
+  }
+
+  item.status = action === 'approve' ? 'approved' : 'rejected';
+  item.rejectionReason = action === 'reject' ? (reason || 'Changes could not be verified') : undefined;
+  item.reviewedBy = _adminName || 'Admin Reviewer';
+  item.reviewedAt = new Date().toISOString();
+
+  // If approved, apply changes to target record
+  if (action === 'approve' && item.payload) {
+    if (item.entityType === 'business') {
+      const partner = db.partners.find((p: any) => p.id === item.entityId);
+      if (partner) {
+        Object.assign(partner, item.payload, { lastUpdated: new Date().toISOString().split('T')[0] });
+      }
+    } else if (item.entityType === 'owner_claim') {
+      const owner = (db.businessOwners || []).find((o: any) => o.partnerId === item.entityId);
+      if (owner) {
+        owner.status = 'active';
+        owner.verifiedAt = new Date().toISOString();
+      }
+    }
+  }
+
+  logAudit(
+    item.reviewedBy,
+    'BUSINESS_MANAGER',
+    action === 'approve' ? 'APPROVAL_GRANTED' : 'APPROVAL_REJECTED',
+    `${item.entityType}: ${item.entityName}`,
+    undefined,
+    action === 'reject' ? reason : 'Approved & Published'
+  );
+
+  saveDB();
+  res.json({ success: true, item });
+});
+
+// --- Payments Configuration ---
+app.get('/api/control-center/payments/config', (req: Request, res: Response) => {
+  res.json(db.paymentSettings || {
+    cashPowerEnabled: true,
+    governmentPaymentsEnabled: true,
+    waveEnabled: true,
+    qmoneyEnabled: true,
+    afrimoneyEnabled: true,
+    platformCommissionPercent: 2.5,
+    cashPowerFeeGMD: 0,
+    merchantCurrency: 'GMD',
+    supportContact: '+220 788 1234',
+    payoutSchedule: 'DAILY_AUTOMATIC',
+    testMode: true
+  });
+});
+
+app.put('/api/control-center/payments/config', (req: Request, res: Response) => {
+  db.paymentSettings = db.paymentSettings || {};
+  Object.assign(db.paymentSettings, req.body);
+  logAudit(req.body._adminName || 'Admin', 'SUPER_ADMIN', 'PAYMENT_CONFIG_UPDATED', 'Payment Gateway Settings');
+  saveDB();
+  res.json({ success: true, config: db.paymentSettings });
+});
+
+// --- Platform Settings ---
+app.get('/api/control-center/settings', (req: Request, res: Response) => {
+  res.json(db.platformSettings || {
+    platformName: 'SOHLA AI',
+    country: 'The Gambia',
+    currency: 'GMD (Dalasi)',
+    maintenanceMode: false,
+    requireApprovalForEdits: true,
+    aiModel: 'gemini-3.8-flash',
+    defaultDeliveryRadiusKm: 25,
+    businessClaimingEnabled: true,
+    contactHotline: '+220 788 1234',
+    supportEmail: 'operations@sohla.gm'
+  });
+});
+
+app.put('/api/control-center/settings', (req: Request, res: Response) => {
+  db.platformSettings = db.platformSettings || {};
+  Object.assign(db.platformSettings, req.body);
+  logAudit(req.body._adminName || 'Admin', 'SUPER_ADMIN', 'PLATFORM_SETTINGS_UPDATED', 'General Settings');
+  saveDB();
+  res.json({ success: true, settings: db.platformSettings });
+});
+
+// --- Central Media Manager Aggregator ---
+app.get('/api/control-center/media', (req: Request, res: Response) => {
+  const mediaList: any[] = [];
+
+  // Gather business photos and logos
+  (db.partners || []).forEach((p: any) => {
+    if (p.logo) {
+      mediaList.push({ id: `media-logo-${p.id}`, url: p.logo, title: `${p.name} (Logo)`, type: 'logo', entity: 'business', entityName: p.name });
+    }
+    if (p.coverImage) {
+      mediaList.push({ id: `media-cover-${p.id}`, url: p.coverImage, title: `${p.name} (Cover)`, type: 'cover', entity: 'business', entityName: p.name });
+    }
+    (p.photos || []).forEach((photo: string, idx: number) => {
+      mediaList.push({ id: `media-photo-${p.id}-${idx}`, url: photo, title: `${p.name} (Gallery #${idx + 1})`, type: 'photo', entity: 'business', entityName: p.name });
+    });
+  });
+
+  // Gather product images
+  (db.products || []).forEach((pr: any) => {
+    if (pr.image) {
+      mediaList.push({ id: `media-prod-${pr.id}`, url: pr.image, title: pr.name, type: 'product', entity: 'product', entityName: pr.name });
+    }
+  });
+
+  // Gather ad media
+  (db.advertisements || []).forEach((ad: any) => {
+    if (ad.mediaUrl) {
+      mediaList.push({ id: `media-ad-${ad.id}`, url: ad.mediaUrl, title: ad.title, type: ad.type || 'video', entity: 'advertisement', entityName: ad.advertiser });
+    }
+  });
+
+  res.json(mediaList);
 });
 
 // 13. Data Backup Snapshot Export

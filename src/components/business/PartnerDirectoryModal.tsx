@@ -36,6 +36,7 @@ interface PartnerDirectoryModalProps {
   favourites?: string[];
   onToggleFavourite?: (partnerId: string) => void;
   onPartnerUpdated?: (updatedPartner: BusinessPartner) => void;
+  onOpenPartnerPortal?: (partner: BusinessPartner) => void;
 }
 
 export const PartnerDirectoryModal: React.FC<PartnerDirectoryModalProps> = ({
@@ -48,7 +49,8 @@ export const PartnerDirectoryModal: React.FC<PartnerDirectoryModalProps> = ({
   onOpenAI,
   favourites: externalFavourites,
   onToggleFavourite: externalOnToggleFavourite,
-  onPartnerUpdated
+  onPartnerUpdated,
+  onOpenPartnerPortal
 }) => {
   const [activePartner, setActivePartner] = useState<BusinessPartner | null>(initialSelectedPartner);
   const [detailTab, setDetailTab] = useState<'products' | 'work' | 'reviews'>('products');
@@ -404,6 +406,18 @@ export const PartnerDirectoryModal: React.FC<PartnerDirectoryModalProps> = ({
                   <span>Address: <strong className="text-[#21160F]">{activePartner.address}, {activePartner.location}</strong></span>
                 </div>
               </div>
+
+              {onOpenPartnerPortal && (
+                <div className="pt-2 border-t border-[#F0E6D8] flex items-center justify-between text-xs text-[#7A6857]">
+                  <span>Are you the owner of {activePartner.name}?</span>
+                  <button
+                    onClick={() => onOpenPartnerPortal(activePartner)}
+                    className="font-bold text-amber-700 hover:text-amber-800 underline decoration-amber-300 flex items-center space-x-1 cursor-pointer"
+                  >
+                    <span>Claim or Manage Profile</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* 5. SECTION TABS SWITCHER: Products | Our Work & Gallery | Customer Reviews */}

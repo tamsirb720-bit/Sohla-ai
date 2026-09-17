@@ -64,9 +64,13 @@ export interface BusinessPartner {
   activeStatus: boolean;
   active?: boolean;
   verified?: boolean;
+  featured?: boolean;
   dateAdded: string;
   lastUpdated: string;
 }
+
+export type Product = ProductItem;
+export type Service = ServiceItem;
 
 export type MissingAIRequest = MissingRequestRecord;
 
@@ -106,6 +110,7 @@ export interface ServiceItem {
   startingPrice: number;
   duration?: string;
   available: boolean;
+  category?: string;
 }
 
 export interface CategoryInfo {
@@ -257,4 +262,169 @@ export interface AIJobListing {
   skillsNeeded: string[];
   description: string;
   deadline: string;
+}
+
+// ===========================================================================
+// SOHLA PRIVATE CONTROL CENTER TYPES (BACKWARD-COMPATIBLE EXTENSION)
+// ===========================================================================
+
+export type ControlCenterTab =
+  | 'dashboard'
+  | 'businesses'
+  | 'products'
+  | 'services'
+  | 'categories'
+  | 'locations'
+  | 'advertisements'
+  | 'news'
+  | 'events'
+  | 'entertainment'
+  | 'team'
+  | 'users'
+  | 'business_owners'
+  | 'ai_knowledge'
+  | 'payments'
+  | 'media'
+  | 'approvals'
+  | 'analytics'
+  | 'security_audit'
+  | 'system_health'
+  | 'settings';
+
+export type ExtendedPermission =
+  | 'MANAGE_BUSINESSES'
+  | 'VERIFY_PARTNERS'
+  | 'MANAGE_PRODUCTS'
+  | 'MANAGE_ADS'
+  | 'MANAGE_TEAM'
+  | 'MANAGE_SECURITY'
+  | 'VIEW_AUDIT_LOGS'
+  | 'VIEW_ANALYTICS'
+  | 'EXPORT_DATA'
+  | 'SYSTEM_CONFIG'
+  | 'MANAGE_CONTENT'
+  | 'MANAGE_BUSINESS_OWNERS'
+  | 'MANAGE_AI_KNOWLEDGE'
+  | 'MANAGE_PAYMENTS'
+  | 'MANAGE_MEDIA'
+  | 'MANAGE_SETTINGS'
+  | 'APPROVE_CHANGES';
+
+export type ContentStatus = 'draft' | 'pending_review' | 'approved' | 'published' | 'archived';
+
+export interface NewsArticle {
+  id: string;
+  title: string;
+  slug?: string;
+  summary: string;
+  content: string;
+  category: string;
+  author: string;
+  coverImage: string;
+  status: ContentStatus;
+  publishedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  views?: number;
+  tags?: string[];
+}
+
+export interface PlatformEvent {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  time: string;
+  location: string;
+  image: string;
+  organizer: string;
+  contact: string;
+  status: ContentStatus;
+  createdAt: string;
+  rsvpCount?: number;
+}
+
+export interface EntertainmentItem {
+  id: string;
+  title: string;
+  description: string;
+  mediaUrl: string;
+  category: string;
+  type: 'video' | 'music' | 'podcast' | 'showcase';
+  status: ContentStatus;
+  creator?: string;
+  createdAt: string;
+  duration?: string;
+}
+
+export interface AIKnowledgeEntry {
+  id: string;
+  title: string;
+  category: string;
+  content: string;
+  active: boolean;
+  expiresAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  author: string;
+  priority?: number;
+}
+
+export interface BusinessOwner {
+  id: string;
+  partnerId: string;
+  partnerName: string;
+  ownerName: string;
+  phone: string;
+  email: string;
+  nationalIdOrNin?: string;
+  status: 'active' | 'pending_verification' | 'suspended';
+  claimedAt: string;
+  verifiedAt?: string;
+  canEditProfile: boolean;
+  canManageCatalog: boolean;
+  canManageMedia: boolean;
+  lastLogin?: string;
+}
+
+export interface ApprovalItem {
+  id: string;
+  entityType: 'business' | 'product' | 'service' | 'news' | 'event' | 'ad' | 'owner_claim';
+  entityId: string;
+  entityName: string;
+  submittedBy: string;
+  submittedRole: string;
+  submissionDate: string;
+  status: 'pending' | 'approved' | 'rejected';
+  rejectionReason?: string;
+  payload: any;
+  reviewedBy?: string;
+  reviewedAt?: string;
+}
+
+export interface PaymentSettings {
+  cashPowerEnabled: boolean;
+  governmentPaymentsEnabled: boolean;
+  waveEnabled: boolean;
+  qmoneyEnabled: boolean;
+  afrimoneyEnabled: boolean;
+  platformCommissionPercent: number;
+  cashPowerFeeGMD: number;
+  merchantCurrency: string;
+  supportContact: string;
+  payoutSchedule: 'DAILY_AUTOMATIC' | 'WEEKLY' | 'MONTHLY';
+  testMode: boolean;
+}
+
+export interface PlatformSettings {
+  platformName: string;
+  country: string;
+  currency: string;
+  maintenanceMode: boolean;
+  requireApprovalForEdits: boolean;
+  aiModel: string;
+  defaultDeliveryRadiusKm: number;
+  businessClaimingEnabled: boolean;
+  contactHotline: string;
+  supportEmail: string;
 }
