@@ -27,9 +27,10 @@ import { AdminUser, AdminRole, SecurityClearanceTier } from '../../types';
 interface TeamManagementTabProps {
   currentUser: AdminUser;
   token: string;
-  teamMembers: AdminUser[];
-  onRefresh: () => void;
-  showToast: (msg: string) => void;
+  teamMembers?: AdminUser[];
+  onRefresh?: () => void;
+  onTeamUpdated?: () => void;
+  showToast?: (msg: string) => void;
 }
 
 const ROLE_DESCRIPTIONS: Record<AdminRole, { title: string; color: string; clearance: SecurityClearanceTier }> = {
@@ -86,10 +87,13 @@ const CLEARANCE_BADGES: Record<SecurityClearanceTier, { label: string; badgeColo
 export const TeamManagementTab: React.FC<TeamManagementTabProps> = ({
   currentUser,
   token,
-  teamMembers,
+  teamMembers = [],
   onRefresh,
+  onTeamUpdated,
   showToast
 }) => {
+  const triggerRefresh = onRefresh || onTeamUpdated || (() => {});
+  const notify = showToast || ((msg: string) => console.log(`[TeamManagement]: ${msg}`));
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('ALL');
   const [clearanceFilter, setClearanceFilter] = useState('ALL');
@@ -138,7 +142,7 @@ export const TeamManagementTab: React.FC<TeamManagementTabProps> = ({
   const handleEnrollMember = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canAddMembers) {
-      showToast('Error: Only portal administrators can add a team member.');
+      notify('Error: Only portal administrators can add a team member.');
       return;
     }
 
@@ -180,7 +184,7 @@ export const TeamManagementTab: React.FC<TeamManagementTabProps> = ({
 
       const data = await res.json();
       if (res.ok && data.success) {
-        showToast(`Staff member "${newMember.name}" enrolled with Verified Personal status!`);
+        notify(`Staff member "${newMember.name}" enrolled with Verified Personal status!`);
         setActivationModal({
           name: newMember.name,
           username: data.user.username,
@@ -204,7 +208,7 @@ export const TeamManagementTab: React.FC<TeamManagementTabProps> = ({
           passedNinVerification: true,
           signedSecurityNda: true
         });
-        onRefresh();
+        triggerRefresh();
       } else {
         alert(data.error || 'Failed to enroll member.');
       }
@@ -237,8 +241,8 @@ export const TeamManagementTab: React.FC<TeamManagementTabProps> = ({
       });
       const data = await res.json();
       if (data.success) {
-        showToast(`Staff member "${user.name}" access ${data.active ? 'RESTORED' : 'SUSPENDED'}`);
-        onRefresh();
+        notify(`Staff member "${user.name}" access ${data.active ? 'RESTORED' : 'SUSPENDED'}`);
+        triggerRefresh();
       } else {
         alert(data.error || 'Could not update status');
       }
@@ -276,8 +280,8 @@ export const TeamManagementTab: React.FC<TeamManagementTabProps> = ({
       });
       const data = await res.json();
       if (data.success) {
-        showToast(`Member "${user.name}" removed and credentials revoked.`);
-        onRefresh();
+        notify(`Member "${user.name}" removed and credentials revoked.`);
+        triggerRefresh();
       } else {
         alert(data.error || 'Could not delete member');
       }
@@ -333,7 +337,7 @@ export const TeamManagementTab: React.FC<TeamManagementTabProps> = ({
 
         <div className="flex items-center space-x-2">
           <button
-            onClick={onRefresh}
+            onClick={triggerRefresh}
             className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition"
             title="Refresh team roster"
           >

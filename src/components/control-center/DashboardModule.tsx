@@ -19,25 +19,32 @@ import {
 import { AdminStats, BusinessPartner, AuditLogEntry, ControlCenterTab } from '../../types';
 
 interface DashboardModuleProps {
-  stats: AdminStats | null;
-  partners: BusinessPartner[];
-  auditLogs: AuditLogEntry[];
-  pendingApprovalsCount: number;
-  onNavigateTab: (tab: ControlCenterTab) => void;
-  onAddBusiness: () => void;
+  stats?: AdminStats | null;
+  partners?: BusinessPartner[];
+  auditLogs?: AuditLogEntry[];
+  pendingApprovalsCount?: number;
+  onNavigateTab?: (tab: ControlCenterTab) => void;
+  onAddBusiness?: () => void;
+  ads?: any[];
+  teamMembers?: any[];
+  categories?: any[];
+  currentUser?: any;
+  onNavigate?: (tab: ControlCenterTab) => void;
 }
 
 export const DashboardModule: React.FC<DashboardModuleProps> = ({
-  stats,
-  partners,
-  auditLogs,
-  pendingApprovalsCount,
+  stats = null,
+  partners = [],
+  auditLogs = [],
+  pendingApprovalsCount = 0,
   onNavigateTab,
-  onAddBusiness
+  onAddBusiness,
+  onNavigate
 }) => {
-  const verifiedCount = partners.filter(p => p.verificationStatus === 'verified' || p.verified).length;
-  const pendingCount = partners.filter(p => p.verificationStatus === 'pending').length;
-  const activeCount = partners.filter(p => p.activeStatus || p.active).length;
+  const navigate = onNavigateTab || onNavigate || (() => {});
+  const verifiedCount = (partners || []).filter(p => p.verificationStatus === 'verified' || p.verified).length;
+  const pendingCount = (partners || []).filter(p => p.verificationStatus === 'pending').length;
+  const activeCount = (partners || []).filter(p => p.activeStatus || p.active).length;
 
   return (
     <div className="space-y-6">
@@ -341,10 +348,10 @@ export const DashboardModule: React.FC<DashboardModuleProps> = ({
             </div>
 
             <div className="mt-3 space-y-3 max-h-[460px] overflow-y-auto pr-1 text-xs">
-              {auditLogs.length === 0 ? (
+              {(auditLogs?.length ?? 0) === 0 ? (
                 <div className="text-center py-6 text-stone-400">No recent security events recorded</div>
               ) : (
-                auditLogs.slice(0, 8).map(log => (
+                (auditLogs || []).slice(0, 8).map(log => (
                   <div key={log.id} className="p-2.5 rounded-lg bg-stone-50 border border-stone-100">
                     <div className="flex items-center justify-between text-[11px] text-stone-400">
                       <span className="font-semibold text-stone-700">{log.adminName || 'Admin'}</span>

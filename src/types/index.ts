@@ -48,6 +48,7 @@ export interface BusinessPartner {
   logo: string;
   coverImage: string;
   photos: string[];
+  videoUrl?: string;
   ourWork?: OurWorkItem[];
   reviews?: PartnerReview[];
   openingHours: string;
@@ -97,6 +98,7 @@ export interface ProductItem {
   category: string;
   stock: number;
   available: boolean;
+  inStock?: boolean;
   image: string;
   promotion?: string;
   discountPrice?: number;
@@ -142,6 +144,10 @@ export interface Advertisement {
   active: boolean;
   priority: number;
   targetCategory?: string;
+  partnerId?: string;
+  headline?: string;
+  subtext?: string;
+  thumbnailUrl?: string;
   startDate: string;
   endDate: string;
   impressions: number;
@@ -174,6 +180,10 @@ export interface MissingRequestRecord {
   frequency: number;
   resolved: boolean;
   notes?: string;
+  category?: string;
+  count?: number;
+  status?: string;
+  location?: string;
 }
 
 export type AdminRole =
@@ -199,6 +209,7 @@ export interface AdminUser {
   nationalIdOrNin?: string;
   department?: string;
   securityClearance?: SecurityClearanceTier;
+  securityClearanceLevel?: number | string;
   verifiedPersonal?: boolean;
   verifiedBy?: string;
   verifiedAt?: string;
@@ -223,6 +234,8 @@ export interface AuditLogEntry {
   newValue?: string;
   details?: string;
   result?: 'SUCCESS' | 'FAILURE' | 'WARNING' | string;
+  entity?: string;
+  ipAddress?: string;
 }
 
 export interface CashPowerTransaction {
@@ -280,6 +293,7 @@ export type ControlCenterTab =
   | 'events'
   | 'entertainment'
   | 'team'
+  | 'super_team'
   | 'users'
   | 'business_owners'
   | 'ai_knowledge'
@@ -427,4 +441,8 @@ export interface PlatformSettings {
   businessClaimingEnabled: boolean;
   contactHotline: string;
   supportEmail: string;
+  tagline?: string;
+  supportPhone?: string;
+  allowMerchantSelfRegistration?: boolean;
+  aiModelGrounded?: boolean;
 }

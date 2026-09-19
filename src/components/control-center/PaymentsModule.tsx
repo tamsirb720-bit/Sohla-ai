@@ -14,10 +14,10 @@ import {
 import { PaymentSettings } from '../../types';
 
 interface PaymentsModuleProps {
-  currentAdminName: string;
+  currentAdminName?: string;
 }
 
-export const PaymentsModule: React.FC<PaymentsModuleProps> = ({ currentAdminName }) => {
+export const PaymentsModule: React.FC<PaymentsModuleProps> = ({ currentAdminName = 'Admin' }) => {
   const [config, setConfig] = useState<PaymentSettings>({
     cashPowerEnabled: true,
     governmentPaymentsEnabled: true,

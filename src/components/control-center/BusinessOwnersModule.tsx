@@ -20,13 +20,13 @@ import {
 import { BusinessOwner, BusinessPartner } from '../../types';
 
 interface BusinessOwnersModuleProps {
-  partners: BusinessPartner[];
-  currentAdminName: string;
+  partners?: BusinessPartner[];
+  currentAdminName?: string;
 }
 
 export const BusinessOwnersModule: React.FC<BusinessOwnersModuleProps> = ({
-  partners,
-  currentAdminName
+  partners = [],
+  currentAdminName = 'Admin'
 }) => {
   const [viewMode, setViewMode] = useState<'admin_management' | 'merchant_simulator'>('admin_management');
   const [owners, setOwners] = useState<BusinessOwner[]>([]);
@@ -36,7 +36,7 @@ export const BusinessOwnersModule: React.FC<BusinessOwnersModuleProps> = ({
   // Admin creation modal
   const [isCreatingOwner, setIsCreatingOwner] = useState(false);
   const [formData, setFormData] = useState({
-    partnerId: partners[0]?.id || '',
+    partnerId: partners?.[0]?.id || '',
     ownerName: '',
     phone: '+220 ',
     email: '',
@@ -47,7 +47,7 @@ export const BusinessOwnersModule: React.FC<BusinessOwnersModuleProps> = ({
   });
 
   // Simulator state
-  const [simSelectedPartnerId, setSimSelectedPartnerId] = useState(partners[0]?.id || '');
+  const [simSelectedPartnerId, setSimSelectedPartnerId] = useState(partners?.[0]?.id || '');
   const [simOwner, setSimOwner] = useState<any>(null);
   const [simHours, setSimHours] = useState('');
   const [simDeliveryFee, setSimDeliveryFee] = useState<number>(100);
@@ -87,7 +87,7 @@ export const BusinessOwnersModule: React.FC<BusinessOwnersModuleProps> = ({
       setActionMessage(`Registered owner account for ${formData.ownerName}`);
       setIsCreatingOwner(false);
       setFormData({
-        partnerId: partners[0]?.id || '',
+        partnerId: partners?.[0]?.id || '',
         ownerName: '',
         phone: '+220 ',
         email: '',
@@ -138,7 +138,7 @@ export const BusinessOwnersModule: React.FC<BusinessOwnersModuleProps> = ({
 
   // Merchant Portal Simulator Login
   const handleSimulateLogin = async () => {
-    const partner = partners.find(p => p.id === simSelectedPartnerId);
+    const partner = (partners || []).find(p => p.id === simSelectedPartnerId);
     if (!partner) return;
 
     try {
@@ -369,7 +369,7 @@ export const BusinessOwnersModule: React.FC<BusinessOwnersModuleProps> = ({
                 onChange={e => setSimSelectedPartnerId(e.target.value)}
                 className="w-full sm:w-80 p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-semibold"
               >
-                {partners.map(p => (
+                {(partners || []).map(p => (
                   <option key={p.id} value={p.id}>
                     {p.name} ({p.location})
                   </option>
@@ -483,7 +483,7 @@ export const BusinessOwnersModule: React.FC<BusinessOwnersModuleProps> = ({
                   onChange={e => setFormData({ ...formData, partnerId: e.target.value })}
                   className="w-full p-2 bg-stone-50 border rounded-lg"
                 >
-                  {partners.map(p => (
+                  {(partners || []).map(p => (
                     <option key={p.id} value={p.id}>
                       {p.name} ({p.location})
                     </option>

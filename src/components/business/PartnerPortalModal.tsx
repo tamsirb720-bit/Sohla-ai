@@ -21,9 +21,11 @@ import {
   ChevronRight,
   LogOut,
   RefreshCw,
-  Eye
+  Eye,
+  Image as ImageIcon,
+  Star
 } from 'lucide-react';
-import { BusinessPartner, BusinessOwner, ProductItem, ServiceItem } from '../../types';
+import { BusinessPartner, BusinessOwner, ProductItem, ServiceItem, OurWorkItem } from '../../types';
 
 interface PartnerPortalModalProps {
   isOpen: boolean;
@@ -47,7 +49,24 @@ export const PartnerPortalModal: React.FC<PartnerPortalModalProps> = ({
   const [merchantToken, setMerchantToken] = useState<string>('');
 
   // Portal tabs: 'profile' | 'products' | 'services' | 'status'
-  const [activeTab, setActiveTab] = useState<'profile' | 'products' | 'services' | 'status'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'products' | 'services' | 'media' | 'status'>('profile');
+
+  // Owner Our Work and Photo Gallery state
+  const [ownerPhotos, setOwnerPhotos] = useState<string[]>([]);
+  const [newPhotoUrl, setNewPhotoUrl] = useState('');
+  const [ownerOurWork, setOwnerOurWork] = useState<OurWorkItem[]>([]);
+  const [isAddingWork, setIsAddingWork] = useState(false);
+  const [editingWorkIndex, setEditingWorkIndex] = useState<number | null>(null);
+  const [workForm, setWorkForm] = useState<Partial<OurWorkItem>>({
+    title: '',
+    description: '',
+    image: '',
+    category: '',
+    completedDate: ''
+  });
+  const [isSavingMedia, setIsSavingMedia] = useState(false);
+  const [mediaSuccessMsg, setMediaSuccessMsg] = useState('');
+  const [mediaErrorMsg, setMediaErrorMsg] = useState('');
 
   // Form states for login
   const [loginPhone, setLoginPhone] = useState('');
@@ -111,8 +130,103 @@ export const PartnerPortalModal: React.FC<PartnerPortalModalProps> = ({
         deliveryFee: activePartner.deliveryFee || 0,
         estimatedDeliveryTime: activePartner.estimatedDeliveryTime || '30-45 mins'
       });
+      setOwnerPhotos(Array.isArray(activePartner.photos) ? [...activePartner.photos] : []);
+      setOwnerOurWork(Array.isArray(activePartner.ourWork) ? [...activePartner.ourWork] : []);
+      setIsAddingWork(false);
+      setEditingWorkIndex(null);
+      setMediaSuccessMsg('');
+      setMediaErrorMsg('');
     }
   }, [activePartner]);
+
+  // Media handlers: Photos
+  const handleAddPhoto = () => {
+    if (!newPhotoUrl.trim()) return;
+    setOwnerPhotos([...ownerPhotos, newPhotoUrl.trim()]);
+    setNewPhotoUrl('');
+  };
+
+  const handleRemovePhoto = (index: number) => {
+    const updated = [...ownerPhotos];
+    updated.splice(index, 1);
+    setOwnerPhotos(updated);
+  };
+
+  // Media handlers: Our Work
+  const handleSaveWorkItem = () => {
+    if (!workForm.title?.trim() || !workForm.image?.trim()) return;
+    const currentList = [...ownerOurWork];
+    const item: OurWorkItem = {
+      id: editingWorkIndex !== null && currentList[editingWorkIndex]?.id ? currentList[editingWorkIndex].id : `work-${Date.now()}`,
+      title: workForm.title.trim(),
+      description: workForm.description?.trim() || '',
+      image: workForm.image.trim(),
+      category: workForm.category?.trim() || activePartner?.category || 'Showcase',
+      completedDate: workForm.completedDate?.trim() || '2026'
+    };
+
+    if (editingWorkIndex !== null) {
+      currentList[editingWorkIndex] = item;
+    } else {
+      currentList.push(item);
+    }
+
+    setOwnerOurWork(currentList);
+    setIsAddingWork(false);
+    setEditingWorkIndex(null);
+    setWorkForm({ title: '', description: '', image: '', category: '', completedDate: '' });
+  };
+
+  const handleEditWorkItem = (index: number) => {
+    const item = ownerOurWork[index];
+    if (!item) return;
+    setEditingWorkIndex(index);
+    setWorkForm({ ...item });
+    setIsAddingWork(true);
+  };
+
+  const handleRemoveWorkItem = (index: number) => {
+    const currentList = [...ownerOurWork];
+    currentList.splice(index, 1);
+    setOwnerOurWork(currentList);
+  };
+
+  const handleSaveMedia = async () => {
+    if (!activePartner) return;
+    setIsSavingMedia(true);
+    setMediaSuccessMsg('');
+    setMediaErrorMsg('');
+
+    try {
+      const res = await fetch('/api/partner-portal/submit-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          partnerId: activePartner.id,
+          ownerId: currentOwner?.id,
+          ownerName: currentOwner?.ownerName || activePartner.owner || 'Verified Merchant',
+          changes: {
+            photos: ownerPhotos,
+            ourWork: ownerOurWork
+          }
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setMediaSuccessMsg('Gallery & Our Work updates submitted for admin review! (Updates saved to your active session)');
+        const updated = { ...activePartner, photos: ownerPhotos, ourWork: ownerOurWork };
+        setActivePartner(updated);
+        if (onPartnerUpdated) onPartnerUpdated(updated);
+      } else {
+        setMediaErrorMsg(data.error || 'Failed to submit updates');
+      }
+    } catch (err: any) {
+      setMediaErrorMsg(err.message || 'Network error submitting updates');
+    } finally {
+      setIsSavingMedia(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -603,6 +717,17 @@ export const PartnerPortalModal: React.FC<PartnerPortalModalProps> = ({
                   <span>Products & Menu ({activePartner.products?.length || 0})</span>
                 </button>
                 <button
+                  onClick={() => setActiveTab('media')}
+                  className={`py-2 px-3 text-xs font-bold border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
+                    activeTab === 'media'
+                      ? 'border-amber-500 text-amber-400'
+                      : 'border-transparent text-stone-400 hover:text-stone-200'
+                  }`}
+                >
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  <span>Our Work & Gallery ({(ownerOurWork?.length || 0) + (ownerPhotos?.length || 0)})</span>
+                </button>
+                <button
                   onClick={() => setActiveTab('status')}
                   className={`py-2 px-3 text-xs font-bold border-b-2 transition ${
                     activeTab === 'status'
@@ -823,6 +948,284 @@ export const PartnerPortalModal: React.FC<PartnerPortalModalProps> = ({
                         </span>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Sub-Tab: Our Work & Gallery */}
+              {activeTab === 'media' && (
+                <div className="space-y-6">
+                  {mediaSuccessMsg && (
+                    <div className="p-3 rounded-xl bg-emerald-950/50 border border-emerald-800 text-emerald-300 text-xs flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>{mediaSuccessMsg}</span>
+                    </div>
+                  )}
+
+                  {mediaErrorMsg && (
+                    <div className="p-3 rounded-xl bg-rose-950/50 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                      <span>{mediaErrorMsg}</span>
+                    </div>
+                  )}
+
+                  {/* Photo Gallery Section */}
+                  <div className="p-4 rounded-2xl bg-stone-950 border border-stone-800 space-y-3">
+                    <div>
+                      <h5 className="font-bold text-sm text-white flex items-center gap-2">
+                        <ImageIcon className="w-4 h-4 text-amber-400" />
+                        <span>Photo Gallery ({ownerPhotos.length})</span>
+                      </h5>
+                      <p className="text-xs text-stone-400">
+                        Add photos of your storefront, ambiance, food dishes, or facilities.
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        placeholder="Paste image URL (https://...)"
+                        value={newPhotoUrl}
+                        onChange={(e) => setNewPhotoUrl(e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-xl bg-stone-800 border border-stone-700 text-white text-xs focus:outline-none focus:border-amber-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddPhoto}
+                        disabled={!newPhotoUrl.trim()}
+                        className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs transition disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add Photo</span>
+                      </button>
+                    </div>
+
+                    {ownerPhotos.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
+                        {ownerPhotos.map((photo, pIdx) => (
+                          <div key={pIdx} className="relative group rounded-xl overflow-hidden border border-stone-800 bg-stone-900 aspect-video">
+                            <img
+                              src={photo}
+                              alt={`Gallery item ${pIdx + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemovePhoto(pIdx)}
+                              className="absolute top-1.5 right-1.5 p-1 rounded-lg bg-rose-600/90 hover:bg-rose-600 text-white shadow-md transition opacity-90 group-hover:opacity-100 cursor-pointer"
+                              title="Delete photo"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-stone-500 text-xs">
+                        No additional gallery photos added yet.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Our Work / Projects Section */}
+                  <div className="p-4 rounded-2xl bg-stone-950 border border-stone-800 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h5 className="font-bold text-sm text-white flex items-center gap-2">
+                          <Star className="w-4 h-4 text-amber-400" />
+                          <span>Our Work Showcase ({ownerOurWork.length})</span>
+                        </h5>
+                        <p className="text-xs text-stone-400">
+                          Highlight projects, past catering events, renovations, or signature accomplishments.
+                        </p>
+                      </div>
+
+                      {!isAddingWork && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingWorkIndex(null);
+                            setWorkForm({
+                              title: '',
+                              description: '',
+                              image: '',
+                              category: activePartner.category || 'General',
+                              completedDate: '2026'
+                            });
+                            setIsAddingWork(true);
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Add Project</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Inline Add/Edit Form */}
+                    {isAddingWork && (
+                      <div className="p-3.5 rounded-xl bg-stone-900 border border-amber-500/40 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-amber-300">
+                            {editingWorkIndex !== null ? 'Edit Project' : 'New Project Showcase'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsAddingWork(false);
+                              setEditingWorkIndex(null);
+                            }}
+                            className="text-stone-400 hover:text-stone-200"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          <div>
+                            <label className="block text-[11px] font-bold text-stone-300 mb-1">Project Title *</label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. VIP Atlantic Seafood Banquet"
+                              value={workForm.title || ''}
+                              onChange={e => setWorkForm({ ...workForm, title: e.target.value })}
+                              className="w-full px-2.5 py-1.5 rounded-lg bg-stone-800 border border-stone-700 text-white text-xs focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-stone-300 mb-1">Image URL *</label>
+                            <input
+                              type="url"
+                              required
+                              placeholder="https://images.unsplash.com/..."
+                              value={workForm.image || ''}
+                              onChange={e => setWorkForm({ ...workForm, image: e.target.value })}
+                              className="w-full px-2.5 py-1.5 rounded-lg bg-stone-800 border border-stone-700 text-white text-xs focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          <div>
+                            <label className="block text-[11px] font-bold text-stone-300 mb-1">Category / Tag</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Catering, Fine Dining"
+                              value={workForm.category || ''}
+                              onChange={e => setWorkForm({ ...workForm, category: e.target.value })}
+                              className="w-full px-2.5 py-1.5 rounded-lg bg-stone-800 border border-stone-700 text-white text-xs focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-stone-300 mb-1">Completed Date</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. March 2026"
+                              value={workForm.completedDate || ''}
+                              onChange={e => setWorkForm({ ...workForm, completedDate: e.target.value })}
+                              className="w-full px-2.5 py-1.5 rounded-lg bg-stone-800 border border-stone-700 text-white text-xs focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-stone-300 mb-1">Description</label>
+                          <textarea
+                            rows={2}
+                            placeholder="Describe what was accomplished, customer reception, special features..."
+                            value={workForm.description || ''}
+                            onChange={e => setWorkForm({ ...workForm, description: e.target.value })}
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-stone-800 border border-stone-700 text-white text-xs focus:outline-none focus:border-amber-500"
+                          />
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsAddingWork(false);
+                              setEditingWorkIndex(null);
+                            }}
+                            className="px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleSaveWorkItem}
+                            disabled={!workForm.title?.trim() || !workForm.image?.trim()}
+                            className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-bold transition disabled:opacity-50"
+                          >
+                            {editingWorkIndex !== null ? 'Update Project' : 'Add to List'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Existing Work Items List */}
+                    {ownerOurWork.length > 0 ? (
+                      <div className="space-y-2 pt-1">
+                        {ownerOurWork.map((work, wIdx) => (
+                          <div key={work.id || wIdx} className="p-3 rounded-xl bg-stone-900 border border-stone-800 flex items-start gap-3">
+                            <img
+                              src={work.image}
+                              alt={work.title}
+                              className="w-16 h-12 rounded-lg object-cover border border-stone-800 shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-xs text-white truncate">{work.title}</span>
+                                {work.category && (
+                                  <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                    {work.category}
+                                  </span>
+                                )}
+                                {work.completedDate && (
+                                  <span className="text-[10px] text-stone-400">{work.completedDate}</span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-stone-400 mt-0.5 line-clamp-2">{work.description}</p>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleEditWorkItem(wIdx)}
+                                className="p-1 text-stone-400 hover:text-amber-400 cursor-pointer"
+                                title="Edit project"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveWorkItem(wIdx)}
+                                className="p-1 text-stone-400 hover:text-rose-400 cursor-pointer"
+                                title="Delete project"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-stone-500 text-xs">
+                        No showcase projects added yet. Click "Add Project" above.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Submit All Media Changes */}
+                  <div className="pt-2 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleSaveMedia}
+                      disabled={isSavingMedia}
+                      className="py-2.5 px-5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      <Save className="w-4 h-4" />
+                      {isSavingMedia ? 'Submitting Updates...' : 'Submit Gallery & Work Changes'}
+                    </button>
                   </div>
                 </div>
               )}

@@ -385,7 +385,7 @@
       "featuredStatus": true,
       "activeStatus": true,
       "dateAdded": "2026-01-10",
-      "lastUpdated": "2026-09-10",
+      "lastUpdated": "2026-09-18",
       "ourWork": [
         {
           "id": "work-1-1",
@@ -458,7 +458,8 @@
           "serviceUsed": "Dinner & Live Music",
           "verifiedUser": true
         }
-      ]
+      ],
+      "_adminName": "Tamsir Super Admin"
     },
     {
       "id": "bp-2",
@@ -1147,7 +1148,7 @@
       "targetCategory": "ALL",
       "startDate": "2026-01-01",
       "endDate": "2026-12-31",
-      "impressions": 1548,
+      "impressions": 1681,
       "clicks": 345
     },
     {
@@ -1166,7 +1167,7 @@
       "targetCategory": "BUY CASH POWER (NAWEC)",
       "startDate": "2026-01-01",
       "endDate": "2026-12-31",
-      "impressions": 1105,
+      "impressions": 1226,
       "clicks": 215
     },
     {
@@ -1185,11 +1186,33 @@
       "targetCategory": "FOOD & RESTAURANTS",
       "startDate": "2026-03-01",
       "endDate": "2026-10-31",
-      "impressions": 866,
+      "impressions": 989,
       "clicks": 160
     }
   ],
   "auditLogs": [
+    {
+      "id": "log-1789736710888-puc3",
+      "timestamp": "2026-09-18T13:05:10.888Z",
+      "adminId": "current-session",
+      "adminName": "Fatoumatta Jallow",
+      "role": "BUSINESS_OWNER",
+      "action": "PROFILE_CHANGES_SUBMITTED",
+      "targetRecord": "Senegambia Beach Terrace Restaurant",
+      "result": "SUCCESS"
+    },
+    {
+      "id": "log-1789736703915-8meg",
+      "timestamp": "2026-09-18T13:05:03.915Z",
+      "adminId": "current-session",
+      "adminName": "Tamsir Super Admin",
+      "role": "BUSINESS_MANAGER",
+      "action": "PARTNER_UPDATED",
+      "targetRecord": "Senegambia Beach Terrace Restaurant",
+      "previousValue": "{\"id\":\"bp-1\",\"name\":\"Senegambia Beach Terrace Restaurant\",\"owner\":\"Fatoumatta Jallow\",\"description\":\"Authentic Gambian coastal dining with fresh Atlantic seafood, traditional Benachin, and signature grills right on the Senegambia strip.\",\"category\":\"FOOD & RESTAURANTS\",\"subcategory\":\"Gambian Local Cuisine (Benachin/Domoda)\",\"location\":\"Senegambia\",\"address\":\"Kotu Stream Road, Senegambia Strip, Kololi\",\"phone\":\"+220 788 1234\",\"whatsapp\":\"+220 788 1234\",\"email\":\"info@senegambiaterrace.gm\",\"website\":\"https://senegambiaterrace.gm\",\"logo\":\"https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=200&q=80\",\"coverImage\":\"https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80\",\"photos\":[\"https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=600&q=80\",\"https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80\"],\"openingHours\":\"11:00 AM - 11:30 PM (Daily)\",\"deliveryAvailable\":true,\"deliveryFee\":150,\"estimatedDeliveryTime\":\"30 - 45 mins\",\"products\":[{\"id\":\"p-1\",\"partnerId\":\"bp-1\",\"name\":\"Signature Fish Benachin\",\"description\":\"One-pot rice prepared in rich tomato reduction with fresh caught Ladyfish & garden cassava.\",\"price\":280,\"currency\":\"GMD\",\"category\":\"Main Dish\",\"stock\":40,\"available\":true,\"image\":\"https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80\"},{\"id\":\"p-2\",\"partnerId\":\"bp-1\",\"name\":\"Slow-Cooked Beef Domoda\",\"description\":\"Rich roasted peanut butter stew served over steaming jasmine rice with sweet potatoes.\",\"price\":320,\"currency\":\"GMD\",\"category\":\"Main Dish\",\"stock\":30,\"available\":true,\"image\":\"https://images.unsplash.com/photo-1543339308-43e59d6b73a6?auto=format&fit=crop&w=400&q=80\"},{\"id\":\"p-3\",\"partnerId\":\"bp-1\",\"name\":\"Charcoal Grilled King Prawns (Platter)\",\"description\":\"Jumbo prawns basted with Gambian garlic chili herb butter, served with crisp fried plantains.\",\"price\":550,\"currency\":\"GMD\",\"category\":\"Seafood\",\"stock\":15,\"available\":true,\"image\":\"https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=400&q=80\"},{\"id\":\"p-4\",\"partnerId\":\"bp-1\",\"name\":\"Fresh Wonjo & Baobab Nectar\",\"description\":\"Chilled hibiscus flower infusion blended with wild organic baobab fruit pulp.\",\"price\":80,\"currency\":\"GMD\",\"category\":\"Beverages\",\"stock\":100,\"available\":true,\"image\":\"https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=400&q=80\"}],\"services\":[{\"id\":\"s-1\",\"partnerId\":\"bp-1\",\"name\":\"Catering for Events & Celebrations\",\"description\":\"Full buffet setup with buffet chafing dishes and service staff.\",\"startingPrice\":3500,\"available\":true}],\"promotions\":\"10% off for Orders above D1,000 using SOHLA\",\"rating\":4.7,\"reviewCount\":3,\"verificationStatus\":\"verified\",\"featuredStatus\":true,\"activeStatus\":true,\"dateAdded\":\"2026-01-10\",\"lastUpdated\":\"2026-09-10\",\"ourWork\":[{\"id\":\"work-1-1\",\"title\":\"VIP Atlantic Seafood Banquet\",\"description\":\"Exclusive 80-guest coastal dinner featuring whole grilled barracuda, charcoal jumbo prawns, and chilled baobab nectar.\",\"image\":\"https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80\",\"category\":\"Catering & Dining\",\"completedDate\":\"March 2026\",\"tags\":[\"Seafood\",\"Fine Dining\",\"Senegambia Strip\"]},{\"id\":\"work-1-2\",\"title\":\"Authentic Sunday Benachin Feast\",\"description\":\"Traditional Gambian red one-pot fish benachin prepared for family weekend gatherings with cassava, bitter tomato, and chili.\",\"image\":\"https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80\",\"category\":\"Gambian Cuisine\",\"completedDate\":\"February 2026\",\"tags\":[\"Benachin\",\"Local Flavors\",\"Traditional\"]},{\"id\":\"work-1-3\",\"title\":\"Sunset Beach Terrace Deck Setup\",\"description\":\"Refurbished open-air wooden dining terrace facing the Atlantic sunset for live acoustic kora evenings and romantic dining.\",\"image\":\"https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80\",\"category\":\"Venue & Ambiance\",\"completedDate\":\"January 2026\",\"tags\":[\"Atmosphere\",\"Kololi Beach\",\"Live Kora\"]}],\"reviews\":[{\"id\":\"rev-1-1\",\"partnerId\":\"bp-1\",\"authorName\":\"Modou Lamin Touray\",\"rating\":5,\"date\":\"2026-09-08\",\"comment\":\"Best fish benachin in Kololi! Fresh ladyfish and the wonjo juice was cold and refreshing. The ocean breeze makes it unbeatable.\",\"serviceUsed\":\"Dine-In • Fish Benachin\",\"verifiedUser\":true},{\"id\":\"rev-1-2\",\"partnerId\":\"bp-1\",\"authorName\":\"Aminata Ceesay\",\"rating\":5,\"date\":\"2026-08-28\",\"comment\":\"Ordered via WhatsApp delivery to our residence in Kotu. Arrived within 35 minutes piping hot. The grilled prawns were huge!\",\"serviceUsed\":\"Express Delivery\",\"verifiedUser\":true},{\"id\":\"rev-1-3\",\"partnerId\":\"bp-1\",\"authorName\":\"Sophie Van Der Meer\",\"rating\":4,\"date\":\"2026-08-14\",\"comment\":\"Lovely terrace view. Great Domoda with rich peanut sauce and tender beef. Staff was very attentive.\",\"serviceUsed\":\"Dinner & Live Music\",\"verifiedUser\":true}]}",
+      "newValue": "{\"id\":\"bp-1\",\"name\":\"Senegambia Beach Terrace Restaurant\",\"owner\":\"Fatoumatta Jallow\",\"description\":\"Authentic Gambian coastal dining with fresh Atlantic seafood, traditional Benachin, and signature grills right on the Senegambia strip.\",\"category\":\"FOOD & RESTAURANTS\",\"subcategory\":\"Gambian Local Cuisine (Benachin/Domoda)\",\"location\":\"Senegambia\",\"address\":\"Kotu Stream Road, Senegambia Strip, Kololi\",\"phone\":\"+220 788 1234\",\"whatsapp\":\"+220 788 1234\",\"email\":\"info@senegambiaterrace.gm\",\"website\":\"https://senegambiaterrace.gm\",\"logo\":\"https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=200&q=80\",\"coverImage\":\"https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80\",\"photos\":[\"https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=600&q=80\",\"https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80\"],\"openingHours\":\"11:00 AM - 11:30 PM (Daily)\",\"deliveryAvailable\":true,\"deliveryFee\":150,\"estimatedDeliveryTime\":\"30 - 45 mins\",\"products\":[{\"id\":\"p-1\",\"partnerId\":\"bp-1\",\"name\":\"Signature Fish Benachin\",\"description\":\"One-pot rice prepared in rich tomato reduction with fresh caught Ladyfish & garden cassava.\",\"price\":280,\"currency\":\"GMD\",\"category\":\"Main Dish\",\"stock\":40,\"available\":true,\"image\":\"https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80\"},{\"id\":\"p-2\",\"partnerId\":\"bp-1\",\"name\":\"Slow-Cooked Beef Domoda\",\"description\":\"Rich roasted peanut butter stew served over steaming jasmine rice with sweet potatoes.\",\"price\":320,\"currency\":\"GMD\",\"category\":\"Main Dish\",\"stock\":30,\"available\":true,\"image\":\"https://images.unsplash.com/photo-1543339308-43e59d6b73a6?auto=format&fit=crop&w=400&q=80\"},{\"id\":\"p-3\",\"partnerId\":\"bp-1\",\"name\":\"Charcoal Grilled King Prawns (Platter)\",\"description\":\"Jumbo prawns basted with Gambian garlic chili herb butter, served with crisp fried plantains.\",\"price\":550,\"currency\":\"GMD\",\"category\":\"Seafood\",\"stock\":15,\"available\":true,\"image\":\"https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=400&q=80\"},{\"id\":\"p-4\",\"partnerId\":\"bp-1\",\"name\":\"Fresh Wonjo & Baobab Nectar\",\"description\":\"Chilled hibiscus flower infusion blended with wild organic baobab fruit pulp.\",\"price\":80,\"currency\":\"GMD\",\"category\":\"Beverages\",\"stock\":100,\"available\":true,\"image\":\"https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=400&q=80\"}],\"services\":[{\"id\":\"s-1\",\"partnerId\":\"bp-1\",\"name\":\"Catering for Events & Celebrations\",\"description\":\"Full buffet setup with buffet chafing dishes and service staff.\",\"startingPrice\":3500,\"available\":true}],\"promotions\":\"10% off for Orders above D1,000 using SOHLA\",\"rating\":4.7,\"reviewCount\":3,\"verificationStatus\":\"verified\",\"featuredStatus\":true,\"activeStatus\":true,\"dateAdded\":\"2026-01-10\",\"lastUpdated\":\"2026-09-18\",\"ourWork\":[{\"id\":\"work-1-1\",\"title\":\"VIP Atlantic Seafood Banquet\",\"description\":\"Exclusive 80-guest coastal dinner featuring whole grilled barracuda, charcoal jumbo prawns, and chilled baobab nectar.\",\"image\":\"https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80\",\"category\":\"Catering & Dining\",\"completedDate\":\"March 2026\",\"tags\":[\"Seafood\",\"Fine Dining\",\"Senegambia Strip\"]},{\"id\":\"work-1-2\",\"title\":\"Authentic Sunday Benachin Feast\",\"description\":\"Traditional Gambian red one-pot fish benachin prepared for family weekend gatherings with cassava, bitter tomato, and chili.\",\"image\":\"https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80\",\"category\":\"Gambian Cuisine\",\"completedDate\":\"February 2026\",\"tags\":[\"Benachin\",\"Local Flavors\",\"Traditional\"]},{\"id\":\"work-1-3\",\"title\":\"Sunset Beach Terrace Deck Setup\",\"description\":\"Refurbished open-air wooden dining terrace facing the Atlantic sunset for live acoustic kora evenings and romantic dining.\",\"image\":\"https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80\",\"category\":\"Venue & Ambiance\",\"completedDate\":\"January 2026\",\"tags\":[\"Atmosphere\",\"Kololi Beach\",\"Live Kora\"]}],\"reviews\":[{\"id\":\"rev-1-1\",\"partnerId\":\"bp-1\",\"authorName\":\"Modou Lamin Touray\",\"rating\":5,\"date\":\"2026-09-08\",\"comment\":\"Best fish benachin in Kololi! Fresh ladyfish and the wonjo juice was cold and refreshing. The ocean breeze makes it unbeatable.\",\"serviceUsed\":\"Dine-In • Fish Benachin\",\"verifiedUser\":true},{\"id\":\"rev-1-2\",\"partnerId\":\"bp-1\",\"authorName\":\"Aminata Ceesay\",\"rating\":5,\"date\":\"2026-08-28\",\"comment\":\"Ordered via WhatsApp delivery to our residence in Kotu. Arrived within 35 minutes piping hot. The grilled prawns were huge!\",\"serviceUsed\":\"Express Delivery\",\"verifiedUser\":true},{\"id\":\"rev-1-3\",\"partnerId\":\"bp-1\",\"authorName\":\"Sophie Van Der Meer\",\"rating\":4,\"date\":\"2026-08-14\",\"comment\":\"Lovely terrace view. Great Domoda with rich peanut sauce and tender beef. Staff was very attentive.\",\"serviceUsed\":\"Dinner & Live Music\",\"verifiedUser\":true}],\"_adminName\":\"Tamsir Super Admin\"}",
+      "result": "SUCCESS"
+    },
     {
       "id": "log-1789657218073-zic1",
       "timestamp": "2026-09-17T15:00:18.073Z",
@@ -1256,6 +1279,19 @@
     }
   ],
   "aiLogs": [
+    {
+      "id": "ai-1789736561835",
+      "timestamp": "2026-09-18T13:02:41.835Z",
+      "userQuery": "Where can I get Fish Benachin?",
+      "aiResponse": "For delicious Gambian dining, I recommend verified partner **Senegambia Beach Terrace Restaurant** in Senegambia! \nThey serve authentic Signature Fish Benachin (D280), Beef Domoda (D320), and Grilled King Prawns (D550).\n• **Address**: Kotu Stream Road, Senegambia Strip, Kololi\n• **Phone & WhatsApp**: +220 788 1234\n• **Delivery**: Yes, D150 fee (30 - 45 mins)\nWould you like me to open their menu or connect you directly via WhatsApp?",
+      "detectedIntent": "FOOD & RESTAURANTS",
+      "matchedPartners": [
+        "bp-1"
+      ],
+      "missingRequestRecorded": false,
+      "responseTimeMs": 10003,
+      "status": "success"
+    },
     {
       "id": "ai-1789260148230",
       "timestamp": "2026-09-13T00:42:28.230Z",
@@ -1486,6 +1522,19 @@
     }
   ],
   "approvals": [
+    {
+      "id": "appr-1789736710888",
+      "entityType": "business",
+      "entityId": "bp-1",
+      "entityName": "Senegambia Beach Terrace Restaurant",
+      "submittedBy": "Fatoumatta Jallow",
+      "submittedRole": "BUSINESS_OWNER",
+      "submissionDate": "2026-09-18T13:05:10.888Z",
+      "status": "pending",
+      "payload": {
+        "openingHours": "11:00 AM - 11:30 PM (Daily)"
+      }
+    },
     {
       "id": "appr-1789657218073",
       "entityType": "business",

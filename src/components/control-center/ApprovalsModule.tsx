@@ -13,12 +13,12 @@ import {
 import { ApprovalItem } from '../../types';
 
 interface ApprovalsModuleProps {
-  currentAdminName: string;
-  onRefreshParent: () => void;
+  currentAdminName?: string;
+  onRefreshParent?: () => void;
 }
 
 export const ApprovalsModule: React.FC<ApprovalsModuleProps> = ({
-  currentAdminName,
+  currentAdminName = 'Admin',
   onRefreshParent
 }) => {
   const [approvals, setApprovals] = useState<ApprovalItem[]>([]);
@@ -61,13 +61,14 @@ export const ApprovalsModule: React.FC<ApprovalsModuleProps> = ({
       setRejectReason('');
       setTimeout(() => setActionMessage(null), 3000);
       fetchApprovals();
-      onRefreshParent();
+      onRefreshParent?.();
     } catch (err) {
       console.error(err);
     }
   };
 
-  const filteredApprovals = approvals.filter(item => {
+  const filteredApprovals = (approvals || []).filter(item => {
+    if (!item) return false;
     if (filterStatus === 'all') return true;
     return item.status === filterStatus;
   });

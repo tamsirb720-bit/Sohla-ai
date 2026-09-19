@@ -12,16 +12,23 @@ import {
 import { PlatformSettings } from '../../types';
 
 interface PlatformSettingsModuleProps {
-  currentAdminName: string;
+  currentAdminName?: string;
 }
 
-export const PlatformSettingsModule: React.FC<PlatformSettingsModuleProps> = ({ currentAdminName }) => {
+export const PlatformSettingsModule: React.FC<PlatformSettingsModuleProps> = ({ currentAdminName = 'Admin' }) => {
   const [settings, setSettings] = useState<PlatformSettings>({
     platformName: 'SOHLA AI',
-    tagline: 'Discover Verified Local Businesses in The Gambia',
+    country: 'The Gambia',
+    currency: 'GMD',
+    maintenanceMode: false,
+    requireApprovalForEdits: true,
+    aiModel: 'Gemini 2.5 Flash',
+    defaultDeliveryRadiusKm: 25,
+    businessClaimingEnabled: true,
+    contactHotline: '+220 788 1234',
     supportPhone: '+220 788 1234',
     supportEmail: 'contact@sohla.gm',
-    maintenanceMode: false,
+    tagline: 'Discover Verified Local Businesses in The Gambia',
     allowMerchantSelfRegistration: true,
     aiModelGrounded: true
   });
@@ -33,9 +40,9 @@ export const PlatformSettingsModule: React.FC<PlatformSettingsModuleProps> = ({ 
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/control-center/platform-settings');
+      const res = await fetch('/api/control-center/settings');
       const data = await res.json();
-      if (data) setSettings(data);
+      if (data && !data.error) setSettings(prev => ({ ...prev, ...data }));
     } catch (err) {
       console.error(err);
     } finally {
@@ -51,7 +58,7 @@ export const PlatformSettingsModule: React.FC<PlatformSettingsModuleProps> = ({ 
     e.preventDefault();
     setSaving(true);
     try {
-      await fetch('/api/control-center/platform-settings', {
+      await fetch('/api/control-center/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...settings, _adminName: currentAdminName })

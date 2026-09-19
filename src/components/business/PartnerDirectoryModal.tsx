@@ -20,7 +20,8 @@ import {
   Send,
   Sparkles,
   Calendar,
-  Check
+  Check,
+  Film
 } from 'lucide-react';
 import { BusinessPartner, CategoryInfo, ProductItem, PartnerReview, OurWorkItem } from '../../types';
 import { ShareModal, ShareDataPayload } from '../common/ShareModal';
@@ -621,8 +622,26 @@ export const PartnerDirectoryModal: React.FC<PartnerDirectoryModalProps> = ({
                   </div>
                 )}
 
+                {/* Video Showcase (if uploaded) */}
+                {activePartner.videoUrl && (
+                  <div className="space-y-2 pt-2">
+                    <h5 className="text-xs font-bold text-[#4A3B2C] uppercase tracking-wider flex items-center gap-1.5">
+                      <Film className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Promotional Video Showcase</span>
+                    </h5>
+                    <div className="rounded-2xl overflow-hidden border border-[#EADBCA] bg-black aspect-video shadow-inner">
+                      <video
+                        src={activePartner.videoUrl}
+                        controls
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {(!activePartner.ourWork || activePartner.ourWork.length === 0) &&
-                  (!activePartner.photos || activePartner.photos.length === 0) && (
+                  (!activePartner.photos || activePartner.photos.length === 0) &&
+                  !activePartner.videoUrl && (
                     <div className="py-10 text-center bg-white rounded-2xl border border-[#EADBCA] text-[#7A6857] text-xs">
                       <Briefcase className="w-8 h-8 text-[#C4B5A5] mx-auto mb-2" />
                       <p className="font-bold text-[#3E3024]">Showcase gallery coming soon</p>

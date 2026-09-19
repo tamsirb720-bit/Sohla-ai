@@ -13,19 +13,19 @@ import {
 import { BusinessPartner } from '../../types';
 
 interface CategoriesLocationsModuleProps {
-  categories: any[];
-  locations: string[];
-  partners: BusinessPartner[];
-  onRefresh: () => void;
-  currentAdminName: string;
+  categories?: any[];
+  locations?: string[];
+  partners?: BusinessPartner[];
+  onRefresh?: () => void;
+  currentAdminName?: string;
 }
 
 export const CategoriesLocationsModule: React.FC<CategoriesLocationsModuleProps> = ({
-  categories,
-  locations,
-  partners,
+  categories = [],
+  locations = [],
+  partners = [],
   onRefresh,
-  currentAdminName
+  currentAdminName = 'Admin'
 }) => {
   const [activeTab, setActiveTab] = useState<'categories' | 'locations'>('categories');
   const [isAddingCategory, setIsAddingCategory] = useState(false);
@@ -35,14 +35,23 @@ export const CategoriesLocationsModule: React.FC<CategoriesLocationsModuleProps>
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   // Calculate count of partners per category
-  const categoryCounts = categories.map(cat => {
-    const count = partners.filter(p => p.category?.toLowerCase() === cat.key?.toLowerCase() || p.category?.toLowerCase() === cat.name?.toLowerCase()).length;
+  const categoryCounts = (categories || []).map(cat => {
+    const count = (partners || []).filter(p => {
+      if (!p || !p.category) return false;
+      const catKey = cat.key?.toLowerCase();
+      const catName = cat.name?.toLowerCase();
+      const pCat = p.category.toLowerCase();
+      return (catKey && pCat === catKey) || (catName && pCat === catName);
+    }).length;
     return { ...cat, partnerCount: count };
   });
 
   // Calculate count of partners per location
-  const locationCounts = locations.map(loc => {
-    const count = partners.filter(p => p.location?.toLowerCase().includes(loc.toLowerCase())).length;
+  const locationCounts = (locations || []).map(loc => {
+    const count = (partners || []).filter(p => {
+      if (!p || !p.location || !loc) return false;
+      return p.location.toLowerCase().includes(loc.toLowerCase());
+    }).length;
     return { name: loc, partnerCount: count };
   });
 
@@ -67,7 +76,7 @@ export const CategoriesLocationsModule: React.FC<CategoriesLocationsModuleProps>
       setNewCatName('');
       setNewCatKey('');
       setTimeout(() => setActionMessage(null), 3000);
-      onRefresh();
+      onRefresh?.();
     } catch (err) {
       console.error('Failed to create category:', err);
     }
@@ -110,7 +119,7 @@ export const CategoriesLocationsModule: React.FC<CategoriesLocationsModuleProps>
                   : 'text-stone-500 hover:text-stone-800'
               }`}
             >
-              Categories ({categories.length})
+              Categories ({(categories || []).length})
             </button>
             <button
               onClick={() => setActiveTab('locations')}
@@ -120,7 +129,7 @@ export const CategoriesLocationsModule: React.FC<CategoriesLocationsModuleProps>
                   : 'text-stone-500 hover:text-stone-800'
               }`}
             >
-              Locations ({locations.length})
+              Locations ({(locations || []).length})
             </button>
           </div>
 

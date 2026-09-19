@@ -18,17 +18,17 @@ import {
 import { Advertisement, BusinessPartner } from '../../types';
 
 interface AdsModuleProps {
-  ads: Advertisement[];
-  partners: BusinessPartner[];
-  onRefresh: () => void;
-  currentAdminName: string;
+  ads?: Advertisement[];
+  partners?: BusinessPartner[];
+  onRefresh?: () => void;
+  currentAdminName?: string;
 }
 
 export const AdsModule: React.FC<AdsModuleProps> = ({
-  ads,
-  partners,
+  ads = [],
+  partners = [],
   onRefresh,
-  currentAdminName
+  currentAdminName = 'Admin'
 }) => {
   const [editingAd, setEditingAd] = useState<Advertisement | null>(null);
   const [isCreatingAd, setIsCreatingAd] = useState(false);
@@ -38,8 +38,8 @@ export const AdsModule: React.FC<AdsModuleProps> = ({
 
   const [formData, setFormData] = useState<Partial<Advertisement>>({
     title: '',
-    advertiser: partners[0]?.name || 'SOHLA Partner',
-    partnerId: partners[0]?.id || '',
+    advertiser: partners?.[0]?.name || 'SOHLA Partner',
+    partnerId: partners?.[0]?.id || '',
     type: 'video',
     mediaUrl: 'https://assets.mixkit.co/videos/preview/mixkit-african-woman-smiling-while-using-a-mobile-phone-41804-large.mp4',
     thumbnailUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80',
@@ -58,15 +58,15 @@ export const AdsModule: React.FC<AdsModuleProps> = ({
     setEditingAd(null);
     setFormData({
       title: 'Featured Flash Promotion',
-      advertiser: partners[0]?.name || 'SOHLA Partner',
-      partnerId: partners[0]?.id || '',
+      advertiser: partners?.[0]?.name || 'SOHLA Partner',
+      partnerId: partners?.[0]?.id || '',
       type: 'video',
       mediaUrl: 'https://assets.mixkit.co/videos/preview/mixkit-african-woman-smiling-while-using-a-mobile-phone-41804-large.mp4',
       thumbnailUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80',
       headline: 'Taste Authentic Banjul Delights',
       subtext: 'Fast doorstep delivery across Senegambia & Greater Banjul Area.',
       ctaText: 'View Store',
-      ctaLink: partners[0]?.id ? `#partner-${partners[0].id}` : '',
+      ctaLink: partners?.[0]?.id ? `#partner-${partners[0].id}` : '',
       durationSeconds: 6,
       priority: 5,
       active: true,
@@ -97,7 +97,7 @@ export const AdsModule: React.FC<AdsModuleProps> = ({
       });
       setActionMessage(`Updated ad rotation for "${ad.title}"`);
       setTimeout(() => setActionMessage(null), 3000);
-      onRefresh();
+      onRefresh?.();
     } catch (err) {
       console.error('Failed to toggle ad status:', err);
     }
@@ -113,7 +113,7 @@ export const AdsModule: React.FC<AdsModuleProps> = ({
       });
       setActionMessage(`Deleted billboard "${ad.title}"`);
       setTimeout(() => setActionMessage(null), 3000);
-      onRefresh();
+      onRefresh?.();
     } catch (err) {
       console.error('Failed to delete ad:', err);
     }
@@ -150,7 +150,7 @@ export const AdsModule: React.FC<AdsModuleProps> = ({
       setIsCreatingAd(false);
       setEditingAd(null);
       setTimeout(() => setActionMessage(null), 3000);
-      onRefresh();
+      onRefresh?.();
     } catch (err) {
       console.error('Failed to save ad:', err);
     }
@@ -159,7 +159,7 @@ export const AdsModule: React.FC<AdsModuleProps> = ({
   const handleGenerateAIAd = async () => {
     setIsGeneratingAI(true);
     try {
-      const targetPartner = partners[0] || { name: 'Ali Baba Restaurant', location: 'Senegambia' };
+      const targetPartner = partners?.[0] || { id: 'p1', name: 'Ali Baba Restaurant', location: 'Senegambia', category: 'Dining' };
       const res = await fetch('/api/ads/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -175,7 +175,7 @@ export const AdsModule: React.FC<AdsModuleProps> = ({
       if (data.success && data.ad) {
         setActionMessage(`AI generated 6-second billboard for ${targetPartner.name}!`);
         setTimeout(() => setActionMessage(null), 4000);
-        onRefresh();
+        onRefresh?.();
       }
     } catch (err) {
       console.error('Failed to generate AI ad:', err);
@@ -233,12 +233,12 @@ export const AdsModule: React.FC<AdsModuleProps> = ({
 
       {/* Billboards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {ads.length === 0 ? (
+        {(ads || []).length === 0 ? (
           <div className="col-span-full bg-white rounded-xl border border-[#EADBCA] p-10 text-center text-stone-400">
             No billboard ads currently active. Click "Create Ad" or "Auto-Generate AI Ad" to start.
           </div>
         ) : (
-          ads.map(ad => (
+          (ads || []).map(ad => (
             <div
               key={ad.id}
               className="bg-white rounded-2xl border border-[#EADBCA] shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col"
@@ -379,7 +379,7 @@ export const AdsModule: React.FC<AdsModuleProps> = ({
                   <select
                     value={formData.partnerId || ''}
                     onChange={e => {
-                      const p = partners.find(part => part.id === e.target.value);
+                      const p = (partners || []).find(part => part.id === e.target.value);
                       setFormData({
                         ...formData,
                         partnerId: e.target.value,
@@ -388,7 +388,7 @@ export const AdsModule: React.FC<AdsModuleProps> = ({
                     }}
                     className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-xs focus:outline-none focus:border-amber-500"
                   >
-                    {partners.map(p => (
+                    {(partners || []).map(p => (
                       <option key={p.id} value={p.id}>
                         {p.name}
                       </option>

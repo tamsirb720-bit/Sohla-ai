@@ -52,6 +52,7 @@ import { MediaModule } from './MediaModule';
 import { ApprovalsModule } from './ApprovalsModule';
 import { PlatformSettingsModule } from './PlatformSettingsModule';
 import { TeamManagementTab } from '../admin/TeamManagementTab';
+import { ModuleErrorBoundary } from './ModuleErrorBoundary';
 
 interface ControlCenterProps {
   currentUser: AdminUser;
@@ -240,7 +241,7 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
         <div className="p-5 border-b border-stone-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <SohlaLogo size={32} />
+              <SohlaLogo size="md" />
               <div>
                 <div className="font-extrabold tracking-wide text-white text-base">SOHLA</div>
                 <div className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">Control Center</div>
@@ -410,307 +411,345 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
 
           {/* Module 1: Dashboard */}
           {activeTab === 'dashboard' && (
-            <DashboardModule
-              partners={partners}
-              ads={ads}
-              teamMembers={teamMembers}
-              categories={categories}
-              currentUser={currentUser}
-              onNavigate={(tab) => setActiveTab(tab)}
-            />
+            <ModuleErrorBoundary moduleName="Dashboard" onReset={fetchFullPlatformData} onNavigateHome={() => setActiveTab('dashboard')}>
+              <DashboardModule
+                partners={partners}
+                ads={ads}
+                teamMembers={teamMembers}
+                categories={categories}
+                currentUser={currentUser}
+                auditLogs={auditLogs}
+                pendingApprovalsCount={approvalCount}
+                onNavigate={(tab) => setActiveTab(tab)}
+                onNavigateTab={(tab) => setActiveTab(tab)}
+                onAddBusiness={() => setActiveTab('businesses')}
+              />
+            </ModuleErrorBoundary>
           )}
 
           {/* Module 2: Businesses */}
           {activeTab === 'businesses' && (
-            <BusinessesModule
-              partners={partners}
-              onRefresh={fetchFullPlatformData}
-              currentAdminName={currentUser.name}
-            />
+            <ModuleErrorBoundary moduleName="Businesses & Partners" onReset={fetchFullPlatformData} onNavigateHome={() => setActiveTab('dashboard')}>
+              <BusinessesModule
+                partners={partners}
+                categories={categories}
+                locations={locations}
+                onRefresh={fetchFullPlatformData}
+                currentAdminName={currentUser.name}
+              />
+            </ModuleErrorBoundary>
           )}
 
           {/* Module 3: Products & Services */}
           {activeTab === 'products' && (
-            <ProductsServicesModule
-              partners={partners}
-              onRefresh={fetchFullPlatformData}
-              currentAdminName={currentUser.name}
-            />
+            <ModuleErrorBoundary moduleName="Products & Services" onReset={fetchFullPlatformData} onNavigateHome={() => setActiveTab('dashboard')}>
+              <ProductsServicesModule
+                partners={partners}
+                onRefresh={fetchFullPlatformData}
+                currentAdminName={currentUser.name}
+              />
+            </ModuleErrorBoundary>
           )}
 
           {/* Module 4: Categories & Locations */}
           {activeTab === 'categories' && (
-            <CategoriesLocationsModule
-              categories={categories}
-              locations={locations}
-              partners={partners}
-              onRefresh={fetchFullPlatformData}
-              currentAdminName={currentUser.name}
-            />
+            <ModuleErrorBoundary moduleName="Categories & Locations" onReset={fetchFullPlatformData} onNavigateHome={() => setActiveTab('dashboard')}>
+              <CategoriesLocationsModule
+                categories={categories}
+                locations={locations}
+                partners={partners}
+                onRefresh={fetchFullPlatformData}
+                currentAdminName={currentUser.name}
+              />
+            </ModuleErrorBoundary>
           )}
 
           {/* Module 5: Advertisements */}
           {activeTab === 'advertisements' && (
-            <AdsModule
-              ads={ads}
-              partners={partners}
-              onRefresh={fetchFullPlatformData}
-              currentAdminName={currentUser.name}
-            />
+            <ModuleErrorBoundary moduleName="Advertisements & Billboards" onReset={fetchFullPlatformData} onNavigateHome={() => setActiveTab('dashboard')}>
+              <AdsModule
+                ads={ads}
+                partners={partners}
+                onRefresh={fetchFullPlatformData}
+                currentAdminName={currentUser.name}
+              />
+            </ModuleErrorBoundary>
           )}
 
           {/* Module 6, 7, 8: News, Events, Entertainment */}
           {(activeTab === 'news' || activeTab === 'events' || activeTab === 'entertainment') && (
-            <ContentModule
-              initialSubTab={activeTab}
-              currentAdminName={currentUser.name}
-            />
+            <ModuleErrorBoundary moduleName="Content, News & Events" onReset={fetchFullPlatformData} onNavigateHome={() => setActiveTab('dashboard')}>
+              <ContentModule
+                initialSubTab={activeTab}
+                currentAdminName={currentUser.name}
+              />
+            </ModuleErrorBoundary>
           )}
 
           {/* Module 9: Business Owners */}
           {activeTab === 'business_owners' && (
-            <BusinessOwnersModule
-              partners={partners}
-              currentAdminName={currentUser.name}
-            />
+            <ModuleErrorBoundary moduleName="Business Owners & Simulator" onReset={fetchFullPlatformData} onNavigateHome={() => setActiveTab('dashboard')}>
+              <BusinessOwnersModule
+                partners={partners}
+                currentAdminName={currentUser.name}
+              />
+            </ModuleErrorBoundary>
           )}
 
           {/* Module 10: Approvals Queue */}
           {activeTab === 'approvals' && (
-            <ApprovalsModule
-              currentAdminName={currentUser.name}
-              onRefreshParent={fetchFullPlatformData}
-            />
+            <ModuleErrorBoundary moduleName="Approvals Queue" onReset={fetchFullPlatformData} onNavigateHome={() => setActiveTab('dashboard')}>
+              <ApprovalsModule
+                currentAdminName={currentUser.name}
+                onRefreshParent={fetchFullPlatformData}
+              />
+            </ModuleErrorBoundary>
           )}
 
           {/* Module 11: AI Knowledge */}
           {activeTab === 'ai_knowledge' && (
-            <AIKnowledgeModule
-              currentAdminName={currentUser.name}
-            />
+            <ModuleErrorBoundary moduleName="AI Knowledge Base" onReset={fetchFullPlatformData} onNavigateHome={() => setActiveTab('dashboard')}>
+              <AIKnowledgeModule
+                currentAdminName={currentUser.name}
+              />
+            </ModuleErrorBoundary>
           )}
 
           {/* Module 12: Payments */}
           {activeTab === 'payments' && (
-            <PaymentsModule
-              currentAdminName={currentUser.name}
-            />
+            <ModuleErrorBoundary moduleName="Payments & Financial Infrastructure" onReset={fetchFullPlatformData} onNavigateHome={() => setActiveTab('dashboard')}>
+              <PaymentsModule
+                currentAdminName={currentUser.name}
+              />
+            </ModuleErrorBoundary>
           )}
 
           {/* Module 13: Media Assets */}
           {activeTab === 'media' && (
-            <MediaModule />
+            <ModuleErrorBoundary moduleName="Media Assets" onReset={fetchFullPlatformData} onNavigateHome={() => setActiveTab('dashboard')}>
+              <MediaModule />
+            </ModuleErrorBoundary>
           )}
 
           {/* Module 14: Super Team Management */}
           {activeTab === 'super_team' && (
-            <div className="bg-white rounded-2xl border border-[#EADBCA] p-6 shadow-sm">
-              <TeamManagementTab
-                teamMembers={teamMembers}
-                currentUser={currentUser}
-                token={token}
-                onTeamUpdated={fetchFullPlatformData}
-              />
-            </div>
+            <ModuleErrorBoundary moduleName="Team Management" onReset={fetchFullPlatformData} onNavigateHome={() => setActiveTab('dashboard')}>
+              <div className="bg-white rounded-2xl border border-[#EADBCA] p-6 shadow-sm">
+                <TeamManagementTab
+                  teamMembers={teamMembers}
+                  currentUser={currentUser}
+                  token={token}
+                  onTeamUpdated={fetchFullPlatformData}
+                />
+              </div>
+            </ModuleErrorBoundary>
           )}
 
           {/* Module 15: Analytics */}
           {activeTab === 'analytics' && (
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-xl font-bold text-stone-900 flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-amber-600" />
-                  Search Demand & Platform Telemetry
-                </h2>
-                <p className="text-xs text-stone-500 mt-0.5">
-                  Real-time Gambian consumer inquiries and unmet demand signals
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white rounded-xl border border-[#EADBCA] p-5 shadow-sm">
-                  <div className="text-xs text-stone-500 font-semibold">Total Catalog Partners</div>
-                  <div className="text-2xl font-bold text-stone-900 mt-1">{partners.length}</div>
-                  <div className="text-[11px] text-emerald-600 mt-1">100% physically verified</div>
+            <ModuleErrorBoundary moduleName="Analytics & Search Telemetry" onReset={fetchFullPlatformData} onNavigateHome={() => setActiveTab('dashboard')}>
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-bold text-stone-900 flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-amber-600" />
+                    Search Demand & Platform Telemetry
+                  </h2>
+                  <p className="text-xs text-stone-500 mt-0.5">
+                    Real-time Gambian consumer inquiries and unmet demand signals
+                  </p>
                 </div>
 
-                <div className="bg-white rounded-xl border border-[#EADBCA] p-5 shadow-sm">
-                  <div className="text-xs text-stone-500 font-semibold">Active Billboard Views</div>
-                  <div className="text-2xl font-bold text-stone-900 mt-1">
-                    {ads.reduce((acc, a) => acc + (a.impressions || 0), 0).toLocaleString()}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-white rounded-xl border border-[#EADBCA] p-5 shadow-sm">
+                    <div className="text-xs text-stone-500 font-semibold">Total Catalog Partners</div>
+                    <div className="text-2xl font-bold text-stone-900 mt-1">{(partners || []).length}</div>
+                    <div className="text-[11px] text-emerald-600 mt-1">100% physically verified</div>
                   </div>
-                  <div className="text-[11px] text-stone-400 mt-1">5-8s video carousel impressions</div>
-                </div>
 
-                <div className="bg-white rounded-xl border border-[#EADBCA] p-5 shadow-sm">
-                  <div className="text-xs text-stone-500 font-semibold">AI Inquiries Logged</div>
-                  <div className="text-2xl font-bold text-stone-900 mt-1">
-                    {missingRequests.length + 84}
+                  <div className="bg-white rounded-xl border border-[#EADBCA] p-5 shadow-sm">
+                    <div className="text-xs text-stone-500 font-semibold">Active Billboard Views</div>
+                    <div className="text-2xl font-bold text-stone-900 mt-1">
+                      {(ads || []).reduce((acc, a) => acc + (a.impressions || 0), 0).toLocaleString()}
+                    </div>
+                    <div className="text-[11px] text-stone-400 mt-1">5-8s video carousel impressions</div>
                   </div>
-                  <div className="text-[11px] text-amber-600 mt-1">Local Gambian queries</div>
-                </div>
-              </div>
 
-              {/* Missing AI Requests Table */}
-              <div className="bg-white rounded-xl border border-[#EADBCA] p-5 shadow-sm space-y-4">
-                <h3 className="font-bold text-stone-900 text-sm flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-600" />
-                  Unmet Discovery Demands (Opportunities for Merchant Acquisition)
-                </h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#FAF8F5] text-stone-500 font-semibold border-b border-[#EADBCA]">
-                      <tr>
-                        <th className="p-3">Query Asked</th>
-                        <th className="p-3">Category</th>
-                        <th className="p-3">Count</th>
-                        <th className="p-3">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-stone-100">
-                      {missingRequests.length === 0 ? (
+                  <div className="bg-white rounded-xl border border-[#EADBCA] p-5 shadow-sm">
+                    <div className="text-xs text-stone-500 font-semibold">AI Inquiries Logged</div>
+                    <div className="text-2xl font-bold text-stone-900 mt-1">
+                      {(missingRequests || []).length + 84}
+                    </div>
+                    <div className="text-[11px] text-amber-600 mt-1">Local Gambian queries</div>
+                  </div>
+                </div>
+
+                {/* Missing AI Requests Table */}
+                <div className="bg-white rounded-xl border border-[#EADBCA] p-5 shadow-sm space-y-4">
+                  <h3 className="font-bold text-stone-900 text-sm flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600" />
+                    Unmet Discovery Demands (Opportunities for Merchant Acquisition)
+                  </h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-[#FAF8F5] text-stone-500 font-semibold border-b border-[#EADBCA]">
                         <tr>
-                          <td colSpan={4} className="p-6 text-center text-stone-400">
-                            Zero unmet requests. SOHLA AI is successfully matching user requests to verified partners.
-                          </td>
+                          <th className="p-3">Query Asked</th>
+                          <th className="p-3">Category</th>
+                          <th className="p-3">Count</th>
+                          <th className="p-3">Status</th>
                         </tr>
-                      ) : (
-                        missingRequests.map(req => (
-                          <tr key={req.id}>
-                            <td className="p-3 font-semibold text-stone-900">"{req.query}"</td>
-                            <td className="p-3 text-stone-600">{req.category}</td>
-                            <td className="p-3 font-bold text-amber-700">{req.count}</td>
-                            <td className="p-3">
-                              <span className="px-2 py-0.5 rounded-full text-[10px] bg-stone-100 text-stone-700 font-semibold">
-                                {req.status}
-                              </span>
+                      </thead>
+                      <tbody className="divide-y divide-stone-100">
+                        {(missingRequests || []).length === 0 ? (
+                          <tr>
+                            <td colSpan={4} className="p-6 text-center text-stone-400">
+                              Zero unmet requests. SOHLA AI is successfully matching user requests to verified partners.
                             </td>
                           </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                        ) : (
+                          (missingRequests || []).map(req => (
+                            <tr key={req.id}>
+                              <td className="p-3 font-semibold text-stone-900">"{req.query}"</td>
+                              <td className="p-3 text-stone-600">{req.category}</td>
+                              <td className="p-3 font-bold text-amber-700">{req.count}</td>
+                              <td className="p-3">
+                                <span className="px-2 py-0.5 rounded-full text-[10px] bg-stone-100 text-stone-700 font-semibold">
+                                  {req.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
-            </div>
+            </ModuleErrorBoundary>
           )}
 
           {/* Module 16: Security & Audit Logs */}
           {activeTab === 'security_audit' && (
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-xl font-bold text-stone-900 flex items-center gap-2">
-                  <ShieldAlert className="w-5 h-5 text-rose-600" />
-                  Security Audit Logs & Tamper-Proof Trail
-                </h2>
-                <p className="text-xs text-stone-500 mt-0.5">
-                  Immutable record of administrative logins, partner modifications, and role updates
-                </p>
-              </div>
+            <ModuleErrorBoundary moduleName="Security Audit Logs" onReset={fetchFullPlatformData} onNavigateHome={() => setActiveTab('dashboard')}>
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-bold text-stone-900 flex items-center gap-2">
+                    <ShieldAlert className="w-5 h-5 text-rose-600" />
+                    Security Audit Logs & Tamper-Proof Trail
+                  </h2>
+                  <p className="text-xs text-stone-500 mt-0.5">
+                    Immutable record of administrative logins, partner modifications, and role updates
+                  </p>
+                </div>
 
-              <div className="bg-white rounded-xl border border-[#EADBCA] shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#FAF8F5] text-stone-500 font-semibold border-b border-[#EADBCA]">
-                      <tr>
-                        <th className="p-3.5">Timestamp</th>
-                        <th className="p-3.5">Actor</th>
-                        <th className="p-3.5">Action</th>
-                        <th className="p-3.5">Entity</th>
-                        <th className="p-3.5">IP / Security</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-stone-100 font-mono text-[11px]">
-                      {auditLogs.length === 0 ? (
+                <div className="bg-white rounded-xl border border-[#EADBCA] shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-[#FAF8F5] text-stone-500 font-semibold border-b border-[#EADBCA]">
                         <tr>
-                          <td colSpan={5} className="p-8 text-center text-stone-400">
-                            No audit events logged yet.
-                          </td>
+                          <th className="p-3.5">Timestamp</th>
+                          <th className="p-3.5">Actor</th>
+                          <th className="p-3.5">Action</th>
+                          <th className="p-3.5">Entity</th>
+                          <th className="p-3.5">IP / Security</th>
                         </tr>
-                      ) : (
-                        auditLogs.slice(0, 50).map((log, idx) => (
-                          <tr key={log.id || idx} className="hover:bg-stone-50/70">
-                            <td className="p-3.5 text-stone-500">
-                              {new Date(log.timestamp).toLocaleString()}
+                      </thead>
+                      <tbody className="divide-y divide-stone-100 font-mono text-[11px]">
+                        {(auditLogs || []).length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="p-8 text-center text-stone-400">
+                              No audit events logged yet.
                             </td>
-                            <td className="p-3.5 font-bold text-stone-900">{log.adminName}</td>
-                            <td className="p-3.5">
-                              <span className="px-2 py-0.5 rounded bg-stone-100 text-stone-800 font-semibold">
-                                {log.action}
-                              </span>
-                            </td>
-                            <td className="p-3.5 text-stone-600">{log.entity || '-'}</td>
-                            <td className="p-3.5 text-stone-400">{log.ipAddress || '127.0.0.1'}</td>
                           </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                        ) : (
+                          (auditLogs || []).slice(0, 50).map((log, idx) => (
+                            <tr key={log.id || idx} className="hover:bg-stone-50/70">
+                              <td className="p-3.5 text-stone-500">
+                                {new Date(log.timestamp).toLocaleString()}
+                              </td>
+                              <td className="p-3.5 font-bold text-stone-900">{log.adminName}</td>
+                              <td className="p-3.5">
+                                <span className="px-2 py-0.5 rounded bg-stone-100 text-stone-800 font-semibold">
+                                  {log.action}
+                                </span>
+                              </td>
+                              <td className="p-3.5 text-stone-600">{log.entity || '-'}</td>
+                              <td className="p-3.5 text-stone-400">{log.ipAddress || '127.0.0.1'}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
-            </div>
+            </ModuleErrorBoundary>
           )}
 
           {/* Module 17: System Health & Backup */}
           {activeTab === 'system_health' && (
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-xl font-bold text-stone-900 flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-emerald-600" />
-                  System Health & Persistent Data Integrity
-                </h2>
-                <p className="text-xs text-stone-500 mt-0.5">
-                  Verify container runtime, database stability, and download disaster recovery snapshots
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white rounded-xl border border-[#EADBCA] p-5 shadow-sm">
-                  <div className="text-xs text-stone-500 font-semibold">Server Runtime Status</div>
-                  <div className="text-lg font-bold text-emerald-600 mt-1 flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5" />
-                    Online & Healthy
-                  </div>
-                  <div className="text-[11px] text-stone-400 mt-1">Node/Express on Port 3000</div>
+            <ModuleErrorBoundary moduleName="System Health" onReset={fetchFullPlatformData} onNavigateHome={() => setActiveTab('dashboard')}>
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-bold text-stone-900 flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-emerald-600" />
+                    System Health & Persistent Data Integrity
+                  </h2>
+                  <p className="text-xs text-stone-500 mt-0.5">
+                    Verify container runtime, database stability, and download disaster recovery snapshots
+                  </p>
                 </div>
 
-                <div className="bg-white rounded-xl border border-[#EADBCA] p-5 shadow-sm">
-                  <div className="text-xs text-stone-500 font-semibold">Persistence Engine</div>
-                  <div className="text-lg font-bold text-stone-900 mt-1">
-                    Atomic data_store.json
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-white rounded-xl border border-[#EADBCA] p-5 shadow-sm">
+                    <div className="text-xs text-stone-500 font-semibold">Server Runtime Status</div>
+                    <div className="text-lg font-bold text-emerald-600 mt-1 flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5" />
+                      Online & Healthy
+                    </div>
+                    <div className="text-[11px] text-stone-400 mt-1">Node/Express on Port 3000</div>
                   </div>
-                  <div className="text-[11px] text-emerald-600 mt-1">Synchronized safely</div>
+
+                  <div className="bg-white rounded-xl border border-[#EADBCA] p-5 shadow-sm">
+                    <div className="text-xs text-stone-500 font-semibold">Persistence Engine</div>
+                    <div className="text-lg font-bold text-stone-900 mt-1">
+                      Atomic data_store.json
+                    </div>
+                    <div className="text-[11px] text-emerald-600 mt-1">Synchronized safely</div>
+                  </div>
+
+                  <div className="bg-white rounded-xl border border-[#EADBCA] p-5 shadow-sm">
+                    <div className="text-xs text-stone-500 font-semibold">GitHub Source Backup</div>
+                    <div className="text-sm font-bold text-stone-900 mt-1 truncate">
+                      tamsirb720-bit/Sohla-ai
+                    </div>
+                    <div className="text-[11px] text-stone-400 mt-1">Branch: main</div>
+                  </div>
                 </div>
 
-                <div className="bg-white rounded-xl border border-[#EADBCA] p-5 shadow-sm">
-                  <div className="text-xs text-stone-500 font-semibold">GitHub Source Backup</div>
-                  <div className="text-sm font-bold text-stone-900 mt-1 truncate">
-                    tamsirb720-bit/Sohla-ai
-                  </div>
-                  <div className="text-[11px] text-stone-400 mt-1">Branch: main</div>
+                <div className="bg-white rounded-xl border border-[#EADBCA] p-6 shadow-sm space-y-4">
+                  <h3 className="font-bold text-stone-900 text-sm">Disaster Recovery & Data Export</h3>
+                  <p className="text-xs text-stone-600">
+                    Export the entire SOHLA database as a structured JSON file. Contains all merchant listings, product catalogs, 5-8s ads, news, events, and taxonomy.
+                  </p>
+
+                  <button
+                    onClick={handleDownloadBackup}
+                    className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2 active:scale-95"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download Complete Platform Backup (JSON)
+                  </button>
                 </div>
               </div>
-
-              <div className="bg-white rounded-xl border border-[#EADBCA] p-6 shadow-sm space-y-4">
-                <h3 className="font-bold text-stone-900 text-sm">Disaster Recovery & Data Export</h3>
-                <p className="text-xs text-stone-600">
-                  Export the entire SOHLA database as a structured JSON file. Contains all merchant listings, product catalogs, 5-8s ads, news, events, and taxonomy.
-                </p>
-
-                <button
-                  onClick={handleDownloadBackup}
-                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2 active:scale-95"
-                >
-                  <Download className="w-4 h-4" />
-                  Download Complete Platform Backup (JSON)
-                </button>
-              </div>
-            </div>
+            </ModuleErrorBoundary>
           )}
 
           {/* Module 18: Platform Settings */}
           {activeTab === 'settings' && (
-            <PlatformSettingsModule currentAdminName={currentUser.name} />
+            <ModuleErrorBoundary moduleName="Platform Settings" onReset={fetchFullPlatformData} onNavigateHome={() => setActiveTab('dashboard')}>
+              <PlatformSettingsModule currentAdminName={currentUser.name} />
+            </ModuleErrorBoundary>
           )}
         </div>
       </main>

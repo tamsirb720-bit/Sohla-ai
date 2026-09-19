@@ -10,7 +10,8 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Lazy-initialized Gemini AI client
 let genAIClient: GoogleGenAI | null = null;
@@ -867,6 +868,8 @@ app.post('/api/partners', (req: Request, res: Response) => {
     logo: p.logo || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=200&q=80',
     coverImage: p.coverImage || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80',
     photos: p.photos || [],
+    videoUrl: p.videoUrl || '',
+    ourWork: p.ourWork || [],
     openingHours: p.openingHours || '09:00 AM - 08:00 PM',
     deliveryAvailable: Boolean(p.deliveryAvailable),
     deliveryFee: Number(p.deliveryFee || 0),
@@ -1331,18 +1334,29 @@ ${knowledgeSummary}
         }
       ];
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents,
-        config: {
-          systemInstruction,
-          temperature: 0.3 // Low temperature for high factual accuracy
-        }
+      // Safe timeout (10 seconds) wrapper to prevent indefinite hangs on network delays or rate limits
+      const timeoutMs = 10000;
+      let timer: NodeJS.Timeout;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('SOHLA AI: Gemini API request timed out after 10s')), timeoutMs);
       });
+
+      const response = await Promise.race([
+        ai.models.generateContent({
+          model: 'gemini-3.8-flash',
+          contents,
+          config: {
+            systemInstruction,
+            temperature: 0.3 // Low temperature for high factual accuracy
+          }
+        }),
+        timeoutPromise
+      ]);
+      clearTimeout(timer!);
 
       reply = response.text || "Hello! I am SOHLA AI. How can I help simplify your day in The Gambia?";
     } catch (err: any) {
-      console.error('Gemini API call failed, using intelligent local engine:', err);
+      console.error('Gemini API call failed or timed out, using intelligent local engine:', err?.message || err);
       reply = generateIntelligentFallback(queryLower, activePartners);
     }
   } else {
@@ -2423,7 +2437,7 @@ app.put('/api/control-center/payments/config', (req: Request, res: Response) => 
 });
 
 // --- Platform Settings ---
-app.get('/api/control-center/settings', (req: Request, res: Response) => {
+app.get(['/api/control-center/settings', '/api/control-center/platform-settings'], (req: Request, res: Response) => {
   res.json(db.platformSettings || {
     platformName: 'SOHLA AI',
     country: 'The Gambia',
@@ -2438,7 +2452,7 @@ app.get('/api/control-center/settings', (req: Request, res: Response) => {
   });
 });
 
-app.put('/api/control-center/settings', (req: Request, res: Response) => {
+app.put(['/api/control-center/settings', '/api/control-center/platform-settings'], (req: Request, res: Response) => {
   db.platformSettings = db.platformSettings || {};
   Object.assign(db.platformSettings, req.body);
   logAudit(req.body._adminName || 'Admin', 'SUPER_ADMIN', 'PLATFORM_SETTINGS_UPDATED', 'General Settings');
@@ -2460,6 +2474,14 @@ app.get('/api/control-center/media', (req: Request, res: Response) => {
     }
     (p.photos || []).forEach((photo: string, idx: number) => {
       mediaList.push({ id: `media-photo-${p.id}-${idx}`, url: photo, title: `${p.name} (Gallery #${idx + 1})`, type: 'photo', entity: 'business', entityName: p.name });
+    });
+    if (p.videoUrl) {
+      mediaList.push({ id: `media-video-${p.id}`, url: p.videoUrl, title: `${p.name} (Promotional Video)`, type: 'video', entity: 'business', entityName: p.name });
+    }
+    (p.ourWork || []).forEach((work: any, idx: number) => {
+      if (work.image) {
+        mediaList.push({ id: `media-work-${p.id}-${work.id || idx}`, url: work.image, title: `${p.name} - ${work.title || 'Work'}`, type: 'work', entity: 'business', entityName: p.name });
+      }
     });
   });
 
