@@ -6,15 +6,17 @@ interface AdminLoginModalProps {
   isOpen: boolean;
   onClose: () => void;
   onLoginSuccess: (user: AdminUser, token: string) => void;
+  targetPortal?: 'control_center' | 'classic';
 }
 
 export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
   isOpen,
   onClose,
-  onLoginSuccess
+  onLoginSuccess,
+  targetPortal = 'control_center'
 }) => {
-  const [username, setUsername] = useState('superadmin');
-  const [password, setPassword] = useState('sohla2026');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [selectedRole, setSelectedRole] = useState<AdminRole>('SUPER_ADMIN');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -31,6 +33,10 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!username.trim() || !password) {
+      setError('Please enter both administrator username and password');
+      return;
+    }
     setIsSubmitting(true);
     setError('');
 
@@ -38,8 +44,9 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
-          username,
+          username: username.trim(),
           password,
           role: selectedRole
         })
@@ -49,7 +56,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
       if (res.ok && data.success && data.user) {
         onLoginSuccess(data.user, data.token);
       } else {
-        setError(data.error || 'Invalid credentials');
+        setError(data.error || 'Invalid administrator credentials');
       }
     } catch (err) {
       setError('Connection failed. Please verify the server is running.');
@@ -60,12 +67,6 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
 
   const handleSelectRolePreset = (r: AdminRole) => {
     setSelectedRole(r);
-    if (r === 'SUPER_ADMIN') setUsername('superadmin');
-    if (r === 'BUSINESS_MANAGER') setUsername('bizmanager');
-    if (r === 'CONTENT_MANAGER') setUsername('contentmgr');
-    if (r === 'ANALYST') setUsername('analyst');
-    if (r === 'SUPPORT') setUsername('support');
-    setPassword('sohla2026');
   };
 
   return (
@@ -82,9 +83,11 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
             </div>
             <div>
               <h2 className="text-lg font-black font-display tracking-tight text-white">
-                SOHLA Command Center
+                {targetPortal === 'control_center' ? 'SOHLA Control Center' : 'Classic Admin Portal'}
               </h2>
-              <p className="text-xs text-purple-300">Restricted Administrative Gateway</p>
+              <p className="text-xs text-purple-300">
+                {targetPortal === 'control_center' ? 'Modern Platform Operations & Security' : 'Classic Administration Gateway'}
+              </p>
             </div>
           </div>
 

@@ -5,6 +5,8 @@ export type BusinessCategory =
   | 'DELIVERY & ERRANDS'
   | 'BEAUTY & WELLNESS'
   | 'SERVICES'
+  | 'HOUSING & PROPERTIES'
+  | 'HOTELS & STAYS'
   | 'BUY CASH POWER (NAWEC)'
   | 'GOVERNMENT PAYMENTS'
   | 'AI JOBS & INCOME'
@@ -107,13 +109,45 @@ export interface ProductItem {
 export interface ServiceItem {
   id: string;
   partnerId: string;
+  partnerName?: string;
   name: string;
   description: string;
   startingPrice: number;
+  price?: number;
+  pricingType?: string; // 'Fixed' | 'Hourly' | 'Per Visit' | 'Per Infusion' | 'Overnight (8-12 hrs)' | 'Hourly / Shift'
   duration?: string;
+  durationMinutes?: number;
   available: boolean;
   category?: string;
+  subcategory?: string;
+  serviceArea?: string;
+  appointmentRequirements?: string;
+  verificationStatus?: 'verified' | 'pending' | 'unverified';
+  credentialsInfo?: string;
+  activeStatus?: boolean;
+  isActive?: boolean;
+  active?: boolean;
 }
+
+export const HEALTHCARE_SERVICES_LIST = [
+  'Registered Nurse (RN)',
+  'Home Nursing',
+  'Elderly Care',
+  'Post-Surgery Care',
+  'Wound Care & Dressing Changes',
+  'Medication Administration',
+  'IV Therapy',
+  'Blood Pressure Monitoring',
+  'Diabetes Care',
+  'Catheter Care',
+  'Palliative Care',
+  'Overnight Caregiver',
+  'Private Duty Nurse',
+  'Baby & Newborn Nurse',
+  'Health Check Visits'
+] as const;
+
+export type HealthcareServiceName = typeof HEALTHCARE_SERVICES_LIST[number];
 
 export interface CategoryInfo {
   id: string;
@@ -288,6 +322,9 @@ export type ControlCenterTab =
   | 'services'
   | 'categories'
   | 'locations'
+  | 'beauty_bookings'
+  | 'healthcare_services'
+  | 'delivery_orders'
   | 'advertisements'
   | 'news'
   | 'events'
@@ -302,6 +339,7 @@ export type ControlCenterTab =
   | 'approvals'
   | 'analytics'
   | 'security_audit'
+  | 'admin_password'
   | 'system_health'
   | 'settings';
 
@@ -445,4 +483,119 @@ export interface PlatformSettings {
   supportPhone?: string;
   allowMerchantSelfRegistration?: boolean;
   aiModelGrounded?: boolean;
+}
+
+// ===========================================================================
+// BEAUTY & WELLNESS BOOKING AND DELIVERY TYPES
+// ===========================================================================
+
+export type BeautyBookingStatus =
+  | 'PENDING'
+  | 'ACCEPTED'
+  | 'CONFIRMED'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'REJECTED';
+
+export type DeliveryStatus =
+  | 'PENDING'
+  | 'ACCEPTED'
+  | 'PICKUP_ASSIGNED'
+  | 'PICKED_UP'
+  | 'IN_TRANSIT'
+  | 'DELIVERED'
+  | 'CANCELLED'
+  | 'REJECTED';
+
+export type DeliveryType =
+  | 'Food Delivery'
+  | 'Express Courier'
+  | 'Market Errands'
+  | 'Package Delivery'
+  | 'Documents'
+  | 'Fragile Packages'
+  | 'Same-Day Delivery'
+  | 'Market Errand'
+  | 'Document Dispatch'
+  | 'Fragile Parcel';
+
+export type BookingStatus = BeautyBookingStatus;
+
+export type PaymentMethod = 'CASH' | 'WAVE' | 'QMONEY' | 'AFRIMONEY';
+
+export type PaymentStatus = 'UNPAID' | 'PENDING_VERIFICATION' | 'PAID' | 'REFUNDED';
+
+export interface BeautyBooking {
+  id: string; // e.g. "bkg-17290001"
+  bookingCode: string; // e.g. "BKG-GMB-8421"
+  partnerId: string;
+  partnerName: string;
+  partnerLocation?: string;
+  partnerPhone?: string;
+  partnerWhatsapp?: string;
+  serviceId?: string;
+  serviceName: string;
+  servicePrice: number; // in Dalasi (D)
+  pricingType?: string;
+  durationMinutes?: number;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  customerNotes?: string;
+  serviceLocationAddress?: string; // For home nursing & care visits
+  serviceCategory?: string;
+  serviceSubcategory?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  bookingDate: string; // YYYY-MM-DD
+  bookingTime: string; // e.g. "10:30 AM"
+  status: BeautyBookingStatus;
+  paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
+  rejectionReason?: string;
+  cancellationReason?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DeliveryStatusHistoryItem {
+  status: DeliveryStatus;
+  timestamp: string;
+  note?: string;
+}
+
+export interface DeliveryRequest {
+  id: string; // e.g. "del-17290001"
+  trackingCode: string; // e.g. "SHL-DEL-4912"
+  deliveryType: DeliveryType;
+  pickupLocation: string; // e.g. "Brusubi"
+  pickupAddress: string;
+  pickupContactName: string;
+  pickupContactPhone: string;
+  destinationLocation: string; // e.g. "Kololi"
+  destinationAddress: string;
+  dropoffLocation?: string;
+  dropoffAddress?: string;
+  recipientName: string;
+  recipientPhone: string;
+  packageDescription: string;
+  packageWeightApprox?: string;
+  fragile?: boolean;
+  notes?: string;
+  assignedPartnerId?: string;
+  assignedPartnerName?: string;
+  assignedPartnerPhone?: string;
+  assignedPartnerWhatsapp?: string;
+  courierPartnerName?: string;
+  estimatedFee: number; // in Dalasi (D)
+  deliveryFee?: number;
+  status: DeliveryStatus;
+  paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
+  driverNotes?: string;
+  cancellationReason?: string;
+  rejectionReason?: string;
+  statusHistory: DeliveryStatusHistoryItem[];
+  createdAt: string;
+  updatedAt: string;
 }

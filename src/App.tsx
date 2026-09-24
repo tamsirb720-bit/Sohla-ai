@@ -27,7 +27,11 @@ import {
   Receipt,
   History,
   Trash2,
-  Building2
+  Building2,
+  Bell,
+  ChevronDown,
+  ShoppingBag,
+  ShoppingCart
 } from 'lucide-react';
 import {
   CategoryInfo,
@@ -51,6 +55,9 @@ import { ControlCenter } from './components/control-center/ControlCenter';
 import { PartnerPortalModal } from './components/business/PartnerPortalModal';
 import { SohlaLogo } from './components/common/SohlaLogo';
 import { ShareModal, ShareDataPayload } from './components/common/ShareModal';
+import { CustomerServicesAccountSection } from './components/account/CustomerServicesAccountSection';
+import { BeautyBookingModal } from './components/booking/BeautyBookingModal';
+import { DeliveryRequestModal } from './components/delivery/DeliveryRequestModal';
 
 export default function App() {
   // Navigation & View State
@@ -123,6 +130,14 @@ export default function App() {
   const [isPaymentsOpen, setIsPaymentsOpen] = useState(false);
   const [isPartnerPortalOpen, setIsPartnerPortalOpen] = useState(false);
   const [selectedPartnerForPortal, setSelectedPartnerForPortal] = useState<BusinessPartner | null>(null);
+  const [selectedHubLocation, setSelectedHubLocation] = useState('Brusubi');
+  const [isLocationMenuOpen, setIsLocationMenuOpen] = useState(false);
+
+  // Native Beauty & Delivery Modals (Direct from Customer Account or Home)
+  const [isBeautyBookingOpen, setIsBeautyBookingOpen] = useState(false);
+  const [isDeliveryRequestOpen, setIsDeliveryRequestOpen] = useState(false);
+  const [activeBookingPartner, setActiveBookingPartner] = useState<BusinessPartner | null>(null);
+  const [activeDeliveryPartner, setActiveDeliveryPartner] = useState<BusinessPartner | null>(null);
 
   // Admin Security States (Portal Command Center)
   const defaultSuperAdmin: AdminUser = {
@@ -154,8 +169,8 @@ export default function App() {
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
   const [isAdminPortalOpen, setIsAdminPortalOpen] = useState(false);
   const [adminViewMode, setAdminViewMode] = useState<'control_center' | 'classic'>('control_center');
-  const [adminUser, setAdminUser] = useState<AdminUser | null>(defaultSuperAdmin);
-  const [adminToken, setAdminToken] = useState<string>('sohla-admin-session-active');
+  const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
+  const [adminToken, setAdminToken] = useState<string>('');
 
   // Load Initial Public Data
   const fetchData = async () => {
@@ -174,11 +189,49 @@ export default function App() {
     }
   };
 
+  // Verify server session authority
+  const verifyServerSession = async (tokenCandidate?: string): Promise<boolean> => {
+    const token = tokenCandidate || adminToken || (typeof window !== 'undefined' ? localStorage.getItem('sohla_admin_token') || '' : '');
+    if (!token) {
+      setAdminUser(null);
+      setAdminToken('');
+      setIsAdminPortalOpen(false);
+      return false;
+    }
+
+    try {
+      const res = await fetch('/api/admin/verify-session', {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.valid && data.user) {
+          setAdminUser(data.user);
+          setAdminToken(token);
+          return true;
+        }
+      }
+    } catch (e) {
+      console.error('Session validation error:', e);
+    }
+
+    // If server rejected token or request failed
+    try {
+      localStorage.removeItem('sohla_admin_user');
+      localStorage.removeItem('sohla_admin_token');
+    } catch {}
+    setAdminUser(null);
+    setAdminToken('');
+    setIsAdminPortalOpen(false);
+    return false;
+  };
+
   useEffect(() => {
     fetchData();
 
     // Check if URL specifies /admin, #admin, #control-center, or ?mode=customer
-    const checkAdminRoute = () => {
+    const checkAdminRoute = async () => {
       const searchParams = new URLSearchParams(window.location.search);
       if (searchParams.get('mode') === 'customer' || window.location.pathname === '/customer' || window.location.hash.includes('customer')) {
         setIsAdminPortalOpen(false);
@@ -193,9 +246,11 @@ export default function App() {
 
       if (window.location.hash.includes('control-center') || searchParams.get('mode') === 'control-center') {
         setAdminViewMode('control_center');
-        if (adminUser && adminToken) {
+        const isValid = await verifyServerSession();
+        if (isValid) {
           setIsAdminPortalOpen(true);
         } else {
+          setIsAdminPortalOpen(false);
           setIsAdminLoginOpen(true);
         }
         return;
@@ -203,13 +258,17 @@ export default function App() {
 
       if (window.location.pathname.includes('/admin') || window.location.hash.includes('admin') || searchParams.get('mode') === 'admin') {
         setAdminViewMode('classic');
-        if (adminUser && adminToken) {
+        const isValid = await verifyServerSession();
+        if (isValid) {
           setIsAdminPortalOpen(true);
         } else {
+          setIsAdminPortalOpen(false);
           setIsAdminLoginOpen(true);
         }
       }
     };
+
+    // Perform initial session check and route inspection
     checkAdminRoute();
 
     window.addEventListener('hashchange', checkAdminRoute);
@@ -300,7 +359,19 @@ export default function App() {
   };
 
   // Admin Logout
-  const handleAdminLogout = () => {
+  const handleAdminLogout = async () => {
+    const currentToken = adminToken || (typeof window !== 'undefined' ? localStorage.getItem('sohla_admin_token') || '' : '');
+    if (currentToken) {
+      try {
+        await fetch('/api/admin/logout', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${currentToken}` },
+          credentials: 'include'
+        });
+      } catch (err) {
+        console.error('Logout error:', err);
+      }
+    }
     setAdminUser(null);
     setAdminToken('');
     try {
@@ -308,7 +379,7 @@ export default function App() {
       localStorage.removeItem('sohla_admin_token');
     } catch {}
     setIsAdminPortalOpen(false);
-    if (window.location.hash.includes('admin')) {
+    if (window.location.hash.includes('admin') || window.location.hash.includes('control-center')) {
       window.location.hash = '';
     }
   };
@@ -418,23 +489,263 @@ export default function App() {
   const favouritedPartnersList = partners.filter(p => favourites.includes(p.id));
 
   return (
-    <div className="min-h-screen bg-slate-900 flex justify-center selection:bg-purple-500 selection:text-white">
-      {/* Mobile-First Device Wrapper */}
-      <div className="w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl min-h-screen bg-slate-100 flex flex-col relative shadow-2xl overflow-x-hidden border-x border-slate-200">
-        {/* Top Video Advertisement Area */}
-        <TopVideoBillboard
-          ads={ads}
-          onOpenAI={() => handleOpenAI()}
-          onSelectAdCta={(ad) => {
-            if (ad.ctaLink?.includes('cashpower')) {
-              setIsCashPowerOpen(true);
-            } else if (ad.ctaLink?.includes('sohla-ai')) {
-              handleOpenAI(ad.description);
-            } else {
-              handleOpenAI(`Tell me about ${ad.advertiser} and their offer: ${ad.title}`);
-            }
-          }}
-        />
+    <div className="min-h-screen bg-[#0C0704] flex items-center justify-center selection:bg-amber-500 selection:text-slate-950 relative overflow-x-hidden p-0 sm:py-6 sm:px-4">
+      {/* Mobile-First Device Container matching Reference Dimensions & Framing */}
+      <div className="w-full max-w-[460px] sm:max-w-[480px] min-h-screen bg-[#FDFBF7] flex flex-col relative shadow-[0_25px_70px_rgba(0,0,0,0.85)] overflow-x-hidden border-x border-[#3D2517] sm:rounded-[38px] sm:border-2 sm:border-[#4A2D1B]">
+
+        {/* LEFT FLANK: Authentic West African Tribal Geometric Tapestry Border */}
+        <div className="absolute top-0 bottom-0 left-0 w-6 sm:w-7 z-25 pointer-events-none select-none overflow-hidden border-r border-amber-950/50 shadow-[3px_0_12px_rgba(0,0,0,0.45)] bg-[#1A0E07]">
+          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="african-tribal-border" width="28" height="64" patternUnits="userSpaceOnUse">
+                <rect width="28" height="64" fill="#140A04" />
+                {/* Chevron geometric zig-zag bands */}
+                <path d="M0,0 L14,16 L28,0 L28,8 L14,24 L0,8 Z" fill="#C83E28" />
+                <path d="M0,16 L14,32 L28,16 L28,24 L14,40 L0,24 Z" fill="#F2AE2E" />
+                <path d="M0,32 L14,48 L28,32 L28,40 L14,56 L0,40 Z" fill="#1E5936" />
+                <path d="M0,48 L14,64 L28,48 L28,56 L14,72 L0,56 Z" fill="#1D4E89" />
+                {/* Center diamond & accent dots */}
+                <polygon points="14,8 20,16 14,24 8,16" fill="#FDE047" stroke="#111" strokeWidth="0.8" />
+                <polygon points="14,40 20,48 14,56 8,48" fill="#F87171" stroke="#111" strokeWidth="0.8" />
+                <circle cx="14,16" cy="16" r="1.5" fill="#000" />
+                <circle cx="14,48" cy="48" r="1.5" fill="#000" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#african-tribal-border)" />
+          </svg>
+          <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/50 pointer-events-none" />
+        </div>
+
+        {/* RIGHT FLANK: Tropical Palm Fronds and Waving Gambian National Flag */}
+        <div className="absolute top-0 bottom-0 right-0 w-6 sm:w-7 z-25 pointer-events-none select-none overflow-hidden border-l border-amber-950/50 shadow-[-3px_0_12px_rgba(0,0,0,0.45)] bg-[#120904] flex flex-col justify-between">
+          {/* Top arching palm fronds */}
+          <div className="w-full pt-1 opacity-90">
+            <svg className="w-full h-24 text-emerald-500" viewBox="0 0 30 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M28,5 Q15,40 2,95" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              <path d="M25,20 Q12,30 2,42" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M22,35 Q10,48 2,62" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M18,52 Q8,66 2,82" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </div>
+
+          {/* Waving Gambian National Flag Strip */}
+          <div className="w-full py-3 flex flex-col items-center justify-center space-y-1">
+            <div className="w-4 h-24 rounded-md overflow-hidden border border-white/30 shadow-md flex flex-col">
+              <div className="h-[36%] bg-[#CE1126]" />
+              <div className="h-[8%] bg-[#FFFFFF]" />
+              <div className="h-[24%] bg-[#0C1C8C]" />
+              <div className="h-[8%] bg-[#FFFFFF]" />
+              <div className="h-[36%] bg-[#3A7728]" />
+            </div>
+            <span className="text-[7px] font-black text-amber-400 tracking-tighter uppercase [writing-mode:vertical-rl] rotate-180">
+              GAMBIA
+            </span>
+          </div>
+
+          {/* Bottom palm fronds */}
+          <div className="w-full pb-2 opacity-85">
+            <svg className="w-full h-20 text-emerald-600" viewBox="0 0 30 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M28,80 Q15,45 2,5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              <path d="M25,60 Q12,50 2,38" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M22,45 Q10,32 2,18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </div>
+        </div>
+
+        {/* BOTTOM CORNER MEDALLIONS: Circular West African Kente Motif */}
+        <div className="absolute bottom-18 -left-3 sm:-left-3.5 w-12 h-12 sm:w-14 sm:h-14 rounded-full z-26 pointer-events-none border-2 border-amber-400/80 shadow-2xl bg-[#1A0E07] overflow-hidden flex items-center justify-center">
+          <svg className="w-full h-full p-0.5" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="50" r="46" fill="#140A04" stroke="#F59E0B" strokeWidth="3" />
+            <circle cx="50" cy="50" r="36" fill="#C83E28" stroke="#FDE047" strokeWidth="2" />
+            <circle cx="50" cy="50" r="26" fill="#1E5936" stroke="#FDE047" strokeWidth="2" />
+            <circle cx="50" cy="50" r="16" fill="#1D4E89" stroke="#FDE047" strokeWidth="2" />
+            <polygon points="50,6 56,22 72,22 58,32 64,48 50,38 36,48 42,32 28,22 44,22" fill="#FBBF24" />
+            <circle cx="50" cy="50" r="6" fill="#FBBF24" stroke="#111" strokeWidth="1.5" />
+          </svg>
+        </div>
+
+        <div className="absolute bottom-18 -right-3 sm:-right-3.5 w-12 h-12 sm:w-14 sm:h-14 rounded-full z-26 pointer-events-none border-2 border-amber-400/80 shadow-2xl bg-[#1A0E07] overflow-hidden flex items-center justify-center">
+          <svg className="w-full h-full p-0.5" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="50" r="46" fill="#140A04" stroke="#F59E0B" strokeWidth="3" />
+            <circle cx="50" cy="50" r="36" fill="#C83E28" stroke="#FDE047" strokeWidth="2" />
+            <circle cx="50" cy="50" r="26" fill="#1E5936" stroke="#FDE047" strokeWidth="2" />
+            <circle cx="50" cy="50" r="16" fill="#1D4E89" stroke="#FDE047" strokeWidth="2" />
+            <polygon points="50,6 56,22 72,22 58,32 64,48 50,38 36,48 42,32 28,22 44,22" fill="#FBBF24" />
+            <circle cx="50" cy="50" r="6" fill="#FBBF24" stroke="#111" strokeWidth="1.5" />
+          </svg>
+        </div>
+
+        {/* Content Container padded to sit harmoniously between decorative flanks */}
+        <div className="flex-1 flex flex-col pl-7 pr-7 sm:pl-8 sm:pr-8 relative z-10">
+        {/* HERO REGION: Continuous Gambian Coastal Sunset Backdrop encompassing Header & Billboard */}
+        <div className="relative w-full overflow-hidden bg-[#180E08] shrink-0">
+          {/* Authentic Gambian Coastal Sunset & Wooden Fishing Boats Header Backdrop */}
+          <div className="absolute inset-0 z-0">
+            <img
+              src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=80"
+              alt="Gambia Sunset Coast with Wooden Boats"
+              className="w-full h-full object-cover object-center opacity-95 scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/15 to-[#160E08]/85" />
+            {/* Gambian Flag ribbon accent on top right matching reference */}
+            <div className="absolute top-0 right-0 w-36 h-2.5 bg-gradient-to-r from-[#CE1126] via-[#FFFFFF] via-[#0C1C8C] via-[#FFFFFF] to-[#3A7728] opacity-95 shadow-md" />
+          </div>
+
+          <div className="relative z-10">
+            {/* SOHLA Master Top Header */}
+            <header className="w-full text-white px-3.5 pt-1.5 pb-1 space-y-1.5">
+              {/* Status Bar matching reference: 11:18 Sun 20 Sept . 📍 💬 📞 • / 📶 📶 82 */}
+              <div className="flex items-center justify-between text-[11px] text-white/90 font-medium px-0.5 select-none">
+                <div className="flex items-center space-x-1.5">
+                  <span className="font-bold text-white tracking-tight">11:18</span>
+                  <span className="text-white/60">Sun 20 Sept</span>
+                  <span className="text-white/40">•</span>
+                  <span className="text-[10px] space-x-1 text-white/80">
+                    <span>📍</span>
+                    <span>💬</span>
+                    <span>📞</span>
+                    <span>•</span>
+                  </span>
+                </div>
+                <div className="flex items-center space-x-1 text-[11px] font-bold">
+                  <span>📶</span>
+                  <div className="flex items-center bg-black/40 border border-white/30 rounded-md px-1 py-0.2 text-[9px] font-black text-white">
+                    82
+                  </div>
+                </div>
+              </div>
+
+              {/* Main Navigation & Branding Row */}
+              <div className="flex items-center justify-between pt-0.5">
+                {/* Brand Logo and Location Selector */}
+                <div className="flex items-center space-x-1.5">
+                  {/* SOHLA Golden-Orange S Square Logo */}
+                  <div
+                    className="flex items-center space-x-1.5 cursor-pointer select-none group active:scale-95 transition"
+                    onClick={() => setActiveNavTab('home')}
+                  >
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-b from-[#FFA726] to-[#F57C00] flex items-center justify-center text-slate-950 font-black text-lg shadow-md border border-amber-300/40 group-hover:scale-105 transition font-display">
+                      S
+                    </div>
+                    <span className="font-black text-xl tracking-tight text-white font-display drop-shadow">
+                      SOHLA
+                    </span>
+                  </div>
+
+                  {/* Gambia Country Indicator Pill */}
+                  <div className="flex items-center space-x-1 text-xs font-bold text-white bg-black/40 hover:bg-black/60 px-2.5 py-1 rounded-full border border-white/20 backdrop-blur-md transition select-none shadow-xs">
+                    <span className="text-xs">🇬🇲</span>
+                    <span className="text-[11px]">Gambia</span>
+                    <ChevronDown className="w-3 h-3 text-white/70" />
+                  </div>
+
+                  {/* Location Filter Pill (Brusubi / Senegambia / etc.) */}
+                  <div className="relative">
+                    <button
+                      id="btn-header-location-picker"
+                      onClick={() => setIsLocationMenuOpen(!isLocationMenuOpen)}
+                      className="flex items-center space-x-1 text-xs font-bold text-amber-300 bg-black/45 hover:bg-black/65 px-2.5 py-1 rounded-full border border-amber-400/40 backdrop-blur-md transition cursor-pointer active:scale-95 select-none shadow-xs"
+                      title="Change Gambian locality"
+                    >
+                      <MapPin className="w-3 h-3 text-amber-400 fill-amber-400" />
+                      <span className="text-[11px] font-extrabold text-white">{selectedHubLocation}</span>
+                      <ChevronDown className="w-3 h-3 text-amber-300/80" />
+                    </button>
+
+                    {/* Locality Dropdown */}
+                    {isLocationMenuOpen && (
+                      <div className="absolute left-0 mt-1.5 w-44 rounded-2xl bg-[#1C140D] border border-amber-500/30 shadow-2xl p-1.5 z-50 text-white backdrop-blur-lg animate-in fade-in zoom-in-95 duration-150">
+                        <div className="text-[10px] uppercase font-bold text-amber-400/80 px-2 py-1 tracking-wider">
+                          Select Local Hub
+                        </div>
+                        {[
+                          'Brusubi',
+                          'Senegambia',
+                          'Kotu Beach',
+                          'Fajara & Kairaba',
+                          'Kololi',
+                          'Serrekunda',
+                          'Banjul City',
+                          'Greater Banjul (All)'
+                        ].map((loc) => (
+                          <button
+                            key={loc}
+                            onClick={() => {
+                              setSelectedHubLocation(loc);
+                              setIsLocationMenuOpen(false);
+                              if (loc !== 'Greater Banjul (All)') {
+                                handleSearch(loc);
+                              }
+                            }}
+                            className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-medium transition flex items-center justify-between ${
+                              selectedHubLocation === loc
+                                ? 'bg-amber-500 text-stone-950 font-bold'
+                                : 'hover:bg-white/10 text-stone-200'
+                            }`}
+                          >
+                            <span>{loc}</span>
+                            {selectedHubLocation === loc && <span>✓</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action controls: Search, Notification Bell, Cart/Saved */}
+                <div className="flex items-center space-x-1.5">
+                  <button
+                    id="header-btn-search"
+                    onClick={() => {
+                      const searchInput = document.getElementById('main-search-input');
+                      searchInput?.focus();
+                    }}
+                    className="w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 border border-white/20 backdrop-blur-md flex items-center justify-center text-white cursor-pointer active:scale-95 transition shadow-xs"
+                    title="Search SOHLA"
+                  >
+                    <Search className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    id="header-btn-notifications"
+                    onClick={() => handleOpenAI('What is new on SOHLA today in The Gambia?')}
+                    className="relative w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 border border-white/20 backdrop-blur-md flex items-center justify-center text-white cursor-pointer active:scale-95 transition shadow-xs"
+                    title="Notifications & Updates"
+                  >
+                    <Bell className="w-3.5 h-3.5 text-white/90" />
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-rose-600 text-white text-[9px] font-black flex items-center justify-center border border-black shadow">
+                      2
+                    </span>
+                  </button>
+
+                  <button
+                    id="header-btn-saved"
+                    onClick={() => setActiveNavTab('favourites')}
+                    className="w-8 h-8 rounded-full bg-[#EAB308] hover:bg-[#FACC15] flex items-center justify-center text-slate-950 shadow-md transition active:scale-95 cursor-pointer"
+                    title="Cart & Saved Items"
+                  >
+                    <ShoppingCart className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                </div>
+              </div>
+            </header>
+
+            {/* Top Video Advertisement Area inside Sunset Hero */}
+            <TopVideoBillboard
+              ads={ads}
+              onOpenAI={() => handleOpenAI()}
+              onSelectAdCta={(ad) => {
+                if (ad.ctaLink?.includes('cashpower')) {
+                  setIsCashPowerOpen(true);
+                } else if (ad.ctaLink?.includes('sohla-ai')) {
+                  handleOpenAI(ad.description);
+                } else {
+                  handleOpenAI(`Tell me about ${ad.advertiser} and their offer: ${ad.title}`);
+                }
+              }}
+            />
+          </div>
+        </div>
 
         {/* Search Bar matching Reference Design */}
         <SearchBar
@@ -442,24 +753,26 @@ export default function App() {
           onOpenAI={handleOpenAI}
         />
 
-        {/* Quick Gambian Hub & Platform Share Strip */}
-        <div className="px-4 py-1.5 flex items-center justify-between text-xs bg-slate-100/90 border-b border-slate-200/60">
-          <div className="flex items-center space-x-1.5 text-slate-600 font-medium">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[11px] font-semibold">🇬🇲 Verified The Gambia Hub</span>
+        {/* Quick Gambian Hub & Platform Share Card */}
+        <div className="mx-4 my-1.5 px-3.5 py-2.5 rounded-2xl bg-white border border-[#EBE3D7] shadow-xs flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center border border-slate-200 shadow-xs">
+              <span className="text-sm">🇬🇲</span>
+            </div>
+            <span className="text-xs sm:text-sm font-bold text-[#1F140D]">Verified The Gambia Hub</span>
           </div>
           <div className="flex items-center space-x-1.5">
             <button
               onClick={shareAppWhatsApp}
-              className="px-2.5 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold flex items-center space-x-1 text-[11px] transition shadow-xs"
+              className="px-3 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold flex items-center space-x-1.5 text-xs transition shadow-xs active:scale-95 cursor-pointer"
               title="Share SOHLA on WhatsApp"
             >
-              <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+              <MessageCircle className="w-3.5 h-3.5 text-emerald-600 fill-emerald-100" />
               <span>Share App</span>
             </button>
             <button
               onClick={shareAppMulti}
-              className="p-1 rounded-full bg-white hover:bg-slate-200 text-slate-600 border border-slate-200 transition shadow-xs"
+              className="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center transition shadow-xs active:scale-95 cursor-pointer"
               title="Share to other platforms"
             >
               <Share2 className="w-3.5 h-3.5" />
@@ -536,6 +849,37 @@ export default function App() {
                 </button>
               </div>
 
+              {/* SOHLA Marketplace Categories */}
+              <div className="pt-2">
+                <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider mb-2.5">
+                  Browse Categories
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {categories.filter((c) => c.active !== false).map((cat) => (
+                    <button
+                      key={cat.id || cat.key}
+                      onClick={() => handleSelectCategory(cat)}
+                      className="p-2.5 rounded-2xl bg-white border border-[#EADBCA] hover:border-amber-400 text-left transition shadow-xs hover:shadow-sm cursor-pointer flex items-center space-x-2.5"
+                    >
+                      <div
+                        className="w-8 h-8 rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs"
+                        style={{ backgroundColor: cat.color || '#e11d48' }}
+                      >
+                        <span className="text-xs font-bold">{cat.name.charAt(0)}</span>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-extrabold text-slate-900 truncate">
+                          {cat.name}
+                        </div>
+                        <div className="text-[10px] text-slate-500 truncate">
+                          {cat.subcategories?.[0] || 'Explore'}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* All Verified Partners List */}
               <div className="pt-2">
                 <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider mb-2.5">
@@ -580,6 +924,62 @@ export default function App() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* SOHLA Platform Footer with Direct Administration Links */}
+              <div className="mt-8 pt-6 pb-4 border-t border-amber-900/10 text-center space-y-2.5">
+                <div className="flex items-center justify-center space-x-1.5">
+                  <div className="w-5 h-5 rounded-md bg-gradient-to-b from-[#FFA726] to-[#F57C00] flex items-center justify-center text-slate-950 font-black text-xs">
+                    S
+                  </div>
+                  <span className="font-extrabold text-xs text-stone-700 tracking-wider">SOHLA AI GAMBIA</span>
+                </div>
+                <p className="text-[11px] text-stone-400">
+                  The Gambia's Everyday Platform • Banjul, Serrekunda, Kololi & Brusubi
+                </p>
+                <div className="flex items-center justify-center space-x-3 text-xs pt-1">
+                  <button
+                    onClick={async () => {
+                      setAdminViewMode('control_center');
+                      const valid = await verifyServerSession();
+                      if (valid) {
+                        setIsAdminPortalOpen(true);
+                      } else {
+                        setIsAdminLoginOpen(true);
+                      }
+                    }}
+                    className="text-stone-500 hover:text-amber-600 font-semibold transition flex items-center space-x-1"
+                  >
+                    <Sparkles className="w-3 h-3 text-amber-500" />
+                    <span>Control Center</span>
+                  </button>
+                  <span className="text-stone-300">•</span>
+                  <button
+                    onClick={async () => {
+                      setAdminViewMode('classic');
+                      const valid = await verifyServerSession();
+                      if (valid) {
+                        setIsAdminPortalOpen(true);
+                      } else {
+                        setIsAdminLoginOpen(true);
+                      }
+                    }}
+                    className="text-stone-500 hover:text-purple-600 font-semibold transition flex items-center space-x-1"
+                  >
+                    <Lock className="w-3 h-3 text-purple-400" />
+                    <span>Classic Admin</span>
+                  </button>
+                  <span className="text-stone-300">•</span>
+                  <button
+                    onClick={() => {
+                      setSelectedPartnerForPortal(null);
+                      setIsPartnerPortalOpen(true);
+                    }}
+                    className="text-stone-500 hover:text-stone-700 font-semibold transition"
+                  >
+                    Merchant Portal
+                  </button>
                 </div>
               </div>
             </div>
@@ -904,6 +1304,24 @@ export default function App() {
                 </div>
               </div>
 
+              {/* My Beauty Bookings & Delivery Requests */}
+              <CustomerServicesAccountSection
+                partners={partners}
+                onOpenBeautyBooking={() => {
+                  const beautyPartner = partners.find(p => p.category === 'BEAUTY & WELLNESS') || null;
+                  setActiveBookingPartner(beautyPartner);
+                  setIsBeautyBookingOpen(true);
+                }}
+                onOpenDeliveryRequest={() => {
+                  const deliveryPartner = partners.find(p => p.category === 'DELIVERY & ERRANDS') || null;
+                  setActiveDeliveryPartner(deliveryPartner);
+                  setIsDeliveryRequestOpen(true);
+                }}
+                onSelectPartner={(partner) => {
+                  setSelectedPartner(partner);
+                }}
+              />
+
               {/* SOHLA Platform Information */}
               <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 text-xs">
                 <h4 className="font-extrabold text-slate-900 uppercase tracking-wider text-[11px]">
@@ -977,58 +1395,58 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Secure Admin Portal Gateway - Only accessible for staff/admin users or via ?admin URL */}
-              {(adminUser || (typeof window !== 'undefined' && window.location.search.includes('admin'))) && (
-                <div className="p-4 rounded-2xl bg-slate-900 text-white border border-purple-500/30 space-y-3 shadow-lg">
-                  <div className="flex items-center space-x-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-purple-600/30 border border-purple-400/40 flex items-center justify-center text-purple-300">
-                      <Shield className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="font-black text-sm font-display text-white">SOHLA Admin Command Center</h4>
-                      <p className="text-[11px] text-purple-300">Restricted to authorized staff and platform admins</p>
-                    </div>
+              {/* Platform Administration Gateway — Always visible for platform administrators */}
+              <div className="p-4 rounded-2xl bg-slate-900 text-white border border-purple-500/30 space-y-3 shadow-lg">
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-purple-600/30 border border-purple-400/40 flex items-center justify-center text-purple-300">
+                    <Shield className="w-4 h-4" />
                   </div>
-
-                  <p className="text-xs text-slate-400">
-                    Control partner verification, update catalog prices, schedule video billboard ads, inspect AI telemetry, review unmet requests, and examine security audit ledgers.
-                  </p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <button
-                      id="btn-open-control-center"
-                      onClick={() => {
-                        setAdminViewMode('control_center');
-                        if (adminUser && adminToken) {
-                          setIsAdminPortalOpen(true);
-                        } else {
-                          setIsAdminLoginOpen(true);
-                        }
-                      }}
-                      className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs shadow-md active:scale-95 transition flex items-center justify-center space-x-1.5 cursor-pointer"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>SOHLA Control Center</span>
-                    </button>
-
-                    <button
-                      id="btn-open-admin-portal"
-                      onClick={() => {
-                        setAdminViewMode('classic');
-                        if (adminUser && adminToken) {
-                          setIsAdminPortalOpen(true);
-                        } else {
-                          setIsAdminLoginOpen(true);
-                        }
-                      }}
-                      className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs shadow-sm active:scale-95 transition flex items-center justify-center space-x-1.5 cursor-pointer"
-                    >
-                      <Lock className="w-3.5 h-3.5 text-purple-400" />
-                      <span>Classic Admin Portal</span>
-                    </button>
+                  <div>
+                    <h4 className="font-black text-sm font-display text-white">SOHLA Administration</h4>
+                    <p className="text-[11px] text-purple-300">Protected portals for authorized staff & platform administrators</p>
                   </div>
                 </div>
-              )}
+
+                <p className="text-xs text-slate-400">
+                  Control partner verification, catalog items, video billboards, AI knowledge, delivery dispatch, and security logs.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    id="btn-open-control-center"
+                    onClick={async () => {
+                      setAdminViewMode('control_center');
+                      const valid = await verifyServerSession();
+                      if (valid) {
+                        setIsAdminPortalOpen(true);
+                      } else {
+                        setIsAdminLoginOpen(true);
+                      }
+                    }}
+                    className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs shadow-md active:scale-95 transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Control Center</span>
+                  </button>
+
+                  <button
+                    id="btn-open-admin-portal"
+                    onClick={async () => {
+                      setAdminViewMode('classic');
+                      const valid = await verifyServerSession();
+                      if (valid) {
+                        setIsAdminPortalOpen(true);
+                      } else {
+                        setIsAdminLoginOpen(true);
+                      }
+                    }}
+                    className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs shadow-sm active:scale-95 transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                  >
+                    <Lock className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Classic Admin</span>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </main>
@@ -1036,17 +1454,17 @@ export default function App() {
         {/* Floating Bottom Navigation Bar matching reference design */}
         <nav
           id="sohla-bottom-navigation"
-          className="fixed bottom-0 inset-x-0 mx-auto w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl bg-white/95 backdrop-blur-md border-t border-slate-200/90 py-2 px-3 flex items-center justify-around z-30 shadow-[0_-5px_20px_rgba(0,0,0,0.06)]"
+          className="sticky bottom-0 inset-x-0 w-full bg-white/95 backdrop-blur-md border-t border-[#EAE2D5] py-2 px-4 flex items-center justify-between z-30 shadow-[0_-4px_25px_rgba(0,0,0,0.06)] rounded-t-2xl sm:rounded-b-[34px]"
         >
           {/* Home Tab */}
           <button
             id="nav-tab-home"
             onClick={() => setActiveNavTab('home')}
-            className={`flex flex-col items-center justify-center space-y-1 py-1 px-3 rounded-xl transition cursor-pointer ${
-              activeNavTab === 'home' ? 'text-purple-700' : 'text-slate-400 hover:text-slate-600'
+            className={`flex flex-col items-center justify-center space-y-1 py-1 px-2.5 rounded-xl transition cursor-pointer ${
+              activeNavTab === 'home' ? 'text-[#7C3AED]' : 'text-slate-400 hover:text-slate-600'
             }`}
           >
-            <Home className={`w-5 h-5 ${activeNavTab === 'home' ? 'stroke-[2.5]' : ''}`} />
+            <Home className="w-5 h-5 stroke-[2.2]" />
             <span className="text-[10px] font-bold">Home</span>
           </button>
 
@@ -1054,45 +1472,45 @@ export default function App() {
           <button
             id="nav-tab-explore"
             onClick={() => setActiveNavTab('explore')}
-            className={`flex flex-col items-center justify-center space-y-1 py-1 px-3 rounded-xl transition cursor-pointer ${
-              activeNavTab === 'explore' ? 'text-purple-700' : 'text-slate-400 hover:text-slate-600'
+            className={`flex flex-col items-center justify-center space-y-1 py-1 px-2.5 rounded-xl transition cursor-pointer ${
+              activeNavTab === 'explore' ? 'text-[#7C3AED]' : 'text-slate-400 hover:text-slate-600'
             }`}
           >
-            <Compass className={`w-5 h-5 ${activeNavTab === 'explore' ? 'stroke-[2.5]' : ''}`} />
+            <Compass className="w-5 h-5 stroke-[2.2]" />
             <span className="text-[10px] font-bold">Explore</span>
           </button>
 
-          {/* Center Raised Floating SOHLA AI Mascot Button */}
+          {/* Center Raised Floating SOHLA AI Mascot Button matching reference */}
           <div className="relative -top-5 flex flex-col items-center">
             <button
               id="btn-center-sohla-ai"
               onClick={() => handleOpenAI()}
-              className="w-13 h-13 rounded-full bg-gradient-to-tr from-purple-700 via-indigo-600 to-amber-500 p-0.5 shadow-xl hover:scale-105 active:scale-95 transition cursor-pointer animate-pulse-glow"
+              className="w-13 h-13 rounded-full bg-gradient-to-tr from-purple-600 via-indigo-600 to-cyan-400 p-[2.5px] shadow-[0_0_18px_rgba(124,58,237,0.5)] hover:scale-105 active:scale-95 transition cursor-pointer"
               title="Ask SOHLA AI"
             >
               <div className="w-full h-full rounded-full bg-slate-950 flex flex-col items-center justify-center relative overflow-hidden">
-                <div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping absolute top-1" />
-                <div className="w-6 h-4 rounded-md bg-slate-900 border border-cyan-400 flex items-center justify-center space-x-1 mt-1">
-                  <div className="w-1 h-1 rounded-full bg-cyan-300 animate-pulse" />
-                  <div className="w-1 h-1 rounded-full bg-cyan-300 animate-pulse" />
+                {/* Visor eyes */}
+                <div className="w-6 h-3 rounded-full bg-slate-900 border border-cyan-400/90 flex items-center justify-center space-x-1 mt-0.5 shadow-inner">
+                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-300 shadow-[0_0_6px_#38bdf8] animate-pulse" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-300 shadow-[0_0_6px_#38bdf8] animate-pulse" />
                 </div>
-                <span className="text-[8px] font-black text-amber-400 uppercase tracking-wider mt-0.5">
+                {/* SOHLA Label inside the glowing button */}
+                <span className="text-[8px] font-black text-cyan-400 uppercase tracking-widest mt-1">
                   SOHLA
                 </span>
               </div>
             </button>
-            <span className="text-[10px] font-black text-purple-700 mt-1">SOHLA</span>
           </div>
 
           {/* Favourites Tab */}
           <button
             id="nav-tab-favourites"
             onClick={() => setActiveNavTab('favourites')}
-            className={`flex flex-col items-center justify-center space-y-1 py-1 px-3 rounded-xl transition cursor-pointer ${
-              activeNavTab === 'favourites' ? 'text-purple-700' : 'text-slate-400 hover:text-slate-600'
+            className={`flex flex-col items-center justify-center space-y-1 py-1 px-2.5 rounded-xl transition cursor-pointer ${
+              activeNavTab === 'favourites' ? 'text-[#7C3AED]' : 'text-slate-400 hover:text-slate-600'
             }`}
           >
-            <Heart className={`w-5 h-5 ${activeNavTab === 'favourites' ? 'stroke-[2.5]' : ''}`} />
+            <Heart className="w-5 h-5 stroke-[2.2]" />
             <span className="text-[10px] font-bold">Favourites</span>
           </button>
 
@@ -1100,14 +1518,15 @@ export default function App() {
           <button
             id="nav-tab-account"
             onClick={() => setActiveNavTab('account')}
-            className={`flex flex-col items-center justify-center space-y-1 py-1 px-3 rounded-xl transition cursor-pointer ${
-              activeNavTab === 'account' ? 'text-purple-700' : 'text-slate-400 hover:text-slate-600'
+            className={`flex flex-col items-center justify-center space-y-1 py-1 px-2.5 rounded-xl transition cursor-pointer ${
+              activeNavTab === 'account' ? 'text-[#7C3AED]' : 'text-slate-400 hover:text-slate-600'
             }`}
           >
-            <User className={`w-5 h-5 ${activeNavTab === 'account' ? 'stroke-[2.5]' : ''}`} />
+            <User className="w-5 h-5 stroke-[2.2]" />
             <span className="text-[10px] font-bold">Account</span>
           </button>
         </nav>
+        </div>
       </div>
 
       {/* SOHLA AI Assistant Modal */}
@@ -1192,6 +1611,7 @@ export default function App() {
         isOpen={isAdminLoginOpen}
         onClose={() => setIsAdminLoginOpen(false)}
         onLoginSuccess={handleAdminLoginSuccess}
+        targetPortal={adminViewMode}
       />
 
       {/* Full-Screen Private Admin Portal or SOHLA Control Center */}
@@ -1201,7 +1621,11 @@ export default function App() {
             currentUser={adminUser}
             token={adminToken}
             onLogout={handleAdminLogout}
-            onClose={() => setIsAdminPortalOpen(false)}
+            onClose={() => {
+              setIsAdminPortalOpen(false);
+              fetchData();
+            }}
+            onDataUpdated={fetchData}
             onSwitchToClassicAdmin={() => setAdminViewMode('classic')}
           />
         ) : (
@@ -1221,6 +1645,27 @@ export default function App() {
         isOpen={isGlobalShareOpen}
         onClose={() => setIsGlobalShareOpen(false)}
         shareData={globalSharePayload}
+      />
+
+      {/* Direct Beauty Booking Modal */}
+      <BeautyBookingModal
+        isOpen={isBeautyBookingOpen}
+        onClose={() => setIsBeautyBookingOpen(false)}
+        partner={activeBookingPartner}
+        onBookingSuccess={() => {
+          setIsBeautyBookingOpen(false);
+        }}
+      />
+
+      {/* Direct Delivery Request Modal */}
+      <DeliveryRequestModal
+        isOpen={isDeliveryRequestOpen}
+        onClose={() => setIsDeliveryRequestOpen(false)}
+        preferredPartner={activeDeliveryPartner}
+        partners={partners}
+        onRequestSuccess={() => {
+          setIsDeliveryRequestOpen(false);
+        }}
       />
     </div>
   );

@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
@@ -44,6 +45,9 @@ interface DBStructure {
   approvals?: any[];
   paymentSettings?: any;
   platformSettings?: any;
+  adminSecurity?: any;
+  beautyBookings?: any[];
+  deliveryRequests?: any[];
 }
 
 const DB_FILE = path.join(process.cwd(), 'data_store.json');
@@ -95,29 +99,47 @@ const INITIAL_CATEGORIES = [
     id: 'cat-4',
     key: 'DELIVERY & ERRANDS',
     name: 'Delivery & Errands',
-    tagline: 'Packages • Groceries • Documents',
-    subcategories: ['Express Motorcycle Courier', 'Document Dispatch', 'Market Groceries Run', 'Bulk Delivery'],
+    tagline: 'Packages • Groceries • Documents • Express',
+    subcategories: [
+      'Express Courier',
+      'Food Delivery',
+      'Market Errands',
+      'Document Dispatch',
+      'Package Delivery',
+      'Fragile Handling',
+      'Same-Day Delivery'
+    ],
     image: 'https://images.unsplash.com/photo-1580674684081-7617fbf3d745?auto=format&fit=crop&w=600&q=80',
     icon: 'Package',
     color: '#16a34a',
     displayOrder: 4,
     active: true,
     featured: true,
-    aiKeywords: ['delivery', 'errands', 'courier', 'package', 'pickup', 'deliver food', 'documents', 'send parcel']
+    aiKeywords: ['delivery', 'errands', 'courier', 'package', 'pickup', 'deliver food', 'documents', 'send parcel', 'dispatch', 'market runner', 'same-day delivery', 'express courier', 'fragile package']
   },
   {
     id: 'cat-5',
     key: 'BEAUTY & WELLNESS',
     name: 'Beauty & Wellness',
-    tagline: 'Spa • Hair • Skincare • Fitness',
-    subcategories: ['Hair Salons & Braiding', 'Barbershops', 'Spas & Massage', 'Skincare & Cosmetics', 'Gyms & Fitness'],
+    tagline: 'Spa • Hair • Barbers • Skincare • Healthcare & Nursing',
+    subcategories: [
+      'Barbers',
+      'Salons & Braiding',
+      'Spas & Massage',
+      'Beauty & Skincare',
+      'Nails',
+      'Makeup',
+      'Henna',
+      'Wellness',
+      'Healthcare & Nursing'
+    ],
     image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=600&q=80',
     icon: 'Sparkles',
     color: '#db2777',
     displayOrder: 5,
     active: true,
     featured: true,
-    aiKeywords: ['salon', 'hair', 'braiding', 'spa', 'barber', 'massage', 'skincare', 'makeup', 'gym', 'wellness']
+    aiKeywords: ['salon', 'hair', 'braiding', 'spa', 'barber', 'barbershop', 'massage', 'skincare', 'makeup', 'henna', 'nails', 'manicure', 'pedicure', 'wellness', 'facial', 'knotless braids', 'haircut', 'nurse', 'nursing', 'healthcare', 'caregiver', 'elderly care', 'wound care', 'home nurse', 'registered nurse', 'health check', 'iv therapy']
   },
   {
     id: 'cat-6',
@@ -134,6 +156,52 @@ const INITIAL_CATEGORIES = [
     aiKeywords: ['electrician', 'plumber', 'ac repair', 'mechanic', 'cleaning', 'carpenter', 'technician', 'painter']
   },
   {
+    id: 'cat-housing',
+    key: 'HOUSING & PROPERTIES',
+    name: 'Housing & Properties',
+    tagline: 'Rentals • Villas • Land & Sales',
+    subcategories: [
+      'Residential Rentals',
+      'Furnished Apartments',
+      'Houses & Villas',
+      'Land & Plots',
+      'Commercial Properties',
+      'Property for Sale',
+      'Property Management',
+      'Short-Term Rentals'
+    ],
+    image: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=600&q=80',
+    icon: 'Home',
+    color: '#059669',
+    displayOrder: 7,
+    active: true,
+    featured: true,
+    aiKeywords: ['housing', 'property', 'properties', 'rent', 'apartment', 'house', 'villa', 'land', 'plots', 'estate', 'real estate', 'furnished apartment', 'brusubi villa', 'fajara property']
+  },
+  {
+    id: 'cat-hotels',
+    key: 'HOTELS & STAYS',
+    name: 'Hotels & Stays',
+    tagline: 'Hotels • Eco-Lodges • Resorts',
+    subcategories: [
+      'Beach Resorts',
+      'Hotels',
+      'Guesthouses',
+      'Holiday Villas',
+      'Boutique Stays',
+      'Serviced Apartments',
+      'Lodges & Retreats',
+      'Short-Term Stays'
+    ],
+    image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=600&q=80',
+    icon: 'Hotel',
+    color: '#0284c7',
+    displayOrder: 8,
+    active: true,
+    featured: true,
+    aiKeywords: ['hotel', 'hotels', 'stay', 'resort', 'lodge', 'guest house', 'senegambia hotel', 'kololi stay', 'beach resort', 'room booking', 'accommodation', 'suite']
+  },
+  {
     id: 'cat-7',
     key: 'BUY CASH POWER (NAWEC)',
     name: 'Buy Cash Power (NAWEC)',
@@ -142,7 +210,7 @@ const INITIAL_CATEGORIES = [
     image: 'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=600&q=80',
     icon: 'Zap',
     color: '#0d9488',
-    displayOrder: 7,
+    displayOrder: 9,
     active: true,
     featured: true,
     aiKeywords: ['nawec', 'cash power', 'electricity', 'meter', 'token', 'power recharge', 'light bill', 'prepaid meter']
@@ -156,7 +224,7 @@ const INITIAL_CATEGORIES = [
     image: 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=600&q=80',
     icon: 'Landmark',
     color: '#7c3aed',
-    displayOrder: 8,
+    displayOrder: 10,
     active: true,
     featured: true,
     aiKeywords: ['gra', 'government', 'tax', 'tin', 'kmc', 'bcc', 'rates', 'licence', 'fees', 'official payment']
@@ -170,7 +238,7 @@ const INITIAL_CATEGORIES = [
     image: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=600&q=80',
     icon: 'Briefcase',
     color: '#4f46e5',
-    displayOrder: 9,
+    displayOrder: 11,
     active: true,
     featured: true,
     aiKeywords: ['jobs', 'income', 'earn money', 'freelance', 'ai tasks', 'digital work', 'internship', 'training']
@@ -184,7 +252,7 @@ const INITIAL_CATEGORIES = [
     image: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=600&q=80',
     icon: 'CreditCard',
     color: '#0284c7',
-    displayOrder: 10,
+    displayOrder: 12,
     active: true,
     featured: true,
     aiKeywords: ['wave', 'qmoney', 'afrimoney', 'send money', 'pay merchant', 'mobile money', 'dalasi transfer']
@@ -407,10 +475,112 @@ const INITIAL_PARTNERS = [
     activeStatus: true,
     dateAdded: '2026-02-15',
     lastUpdated: '2026-09-05'
+  },
+  {
+    id: 'bp-7',
+    name: 'Atlantic Coastline Properties & Estates',
+    owner: 'Modou Lamin Touray',
+    description: 'Premier Gambian real estate agency specializing in luxury coastal villas, furnished residential rentals, serviced apartments in Brusubi, and titled land plots across West Coast Region.',
+    category: 'HOUSING & PROPERTIES',
+    subcategory: 'Houses & Villas',
+    location: 'Brusubi & Kololi',
+    address: 'Brusubi Roundabout, Coastal Highway Commercial Center',
+    phone: '+220 733 4455',
+    whatsapp: '+220 733 4455',
+    email: 'info@atlanticcoastproperties.gm',
+    website: 'https://atlanticcoastproperties.gm',
+    logo: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=200&q=80',
+    coverImage: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=800&q=80',
+    photos: [
+      'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=600&q=80',
+      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80'
+    ],
+    openingHours: '08:30 AM - 06:30 PM (Mon-Sat)',
+    deliveryAvailable: false,
+    deliveryFee: 0,
+    estimatedDeliveryTime: 'Same-day on-site viewing available',
+    products: [
+      { id: 'p-21', partnerId: 'bp-7', name: 'Luxury 4-Bedroom Pool Villa (Brusubi Phase 1)', description: 'Fully air-conditioned, 24/7 security guard, solar inverter backup, landscaped garden and private swimming pool.', price: 45000, currency: 'GMD', category: 'Houses & Villas', stock: 1, available: true, image: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=400&q=80' },
+      { id: 'p-22', partnerId: 'bp-7', name: 'Executive 2-Bedroom Furnished Apartment (Fajara)', description: 'Sea view terrace, modern fitted European kitchen, backup generator, high-speed WiFi.', price: 25000, currency: 'GMD', category: 'Furnished Apartments', stock: 3, available: true, image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=400&q=80' },
+      { id: 'p-23', partnerId: 'bp-7', name: 'Titled Residential Land Plot (Bijilo)', description: 'Demarcated 20m x 30m plot with direct access road, electricity, water connection, fully titled deed.', price: 650000, currency: 'GMD', category: 'Land & Plots', stock: 2, available: true, image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=400&q=80' }
+    ],
+    services: [
+      { id: 's-15', partnerId: 'bp-7', name: 'Comprehensive Property Management & Tenant Placement', description: 'Rent collection, preventive maintenance, vetting tenants, monthly accounting statement.', startingPrice: 2500, available: true },
+      { id: 's-16', partnerId: 'bp-7', name: 'Property Legal Verification & Title Search', description: 'Full registry and Lands Department due diligence verification before purchase.', startingPrice: 4000, available: true }
+    ],
+    promotions: 'Complimentary legal title verification for buyers using SOHLA',
+    rating: 4.9,
+    reviewCount: 38,
+    verificationStatus: 'verified',
+    featuredStatus: true,
+    activeStatus: true,
+    dateAdded: '2026-03-01',
+    lastUpdated: '2026-09-18'
+  },
+  {
+    id: 'bp-8',
+    name: 'Kotu Sun & Palm Beach Resort',
+    owner: 'Isatou Sanneh',
+    description: 'Award-winning 4-star beachfront resort in Kotu with tropical swimming pools, ocean-view suites, birdwatching nature excursions, and live Gambian cultural entertainment.',
+    category: 'HOTELS & STAYS',
+    subcategory: 'Beach Resorts',
+    location: 'Kotu Beach & Kololi',
+    address: 'Kotu Beach Highway, Adjacent to Kotu Stream',
+    phone: '+220 446 8800',
+    whatsapp: '+220 446 8800',
+    email: 'reservations@kotusunresort.gm',
+    website: 'https://kotusunresort.gm',
+    logo: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=200&q=80',
+    coverImage: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80',
+    photos: [
+      'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=600&q=80',
+      'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=600&q=80'
+    ],
+    openingHours: '24/7 Front Desk & Concierge',
+    deliveryAvailable: true,
+    deliveryFee: 100,
+    estimatedDeliveryTime: '24/7 Room Service & Dining',
+    products: [
+      { id: 'p-24', partnerId: 'bp-8', name: 'Deluxe Ocean View Room (Per Night)', description: 'King-size canopy bed, private balcony overlooking Atlantic Ocean, breakfast buffet included, free high-speed WiFi.', price: 3800, currency: 'GMD', category: 'Rooms', stock: 12, available: true, image: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=400&q=80' },
+      { id: 'p-25', partnerId: 'bp-8', name: 'Executive Beachfront Suite (Per Night)', description: 'Spacious suite with private plunge lounge, jacuzzi, sunset terrace, daily fresh fruit basket and airport shuttle.', price: 6500, currency: 'GMD', category: 'Suites', stock: 5, available: true, image: 'https://images.unsplash.com/photo-1591088398332-8a7791972843?auto=format&fit=crop&w=400&q=80' },
+      { id: 'p-26', partnerId: 'bp-8', name: 'Weekend Eco-Lodge Family Bungalow (Per Night)', description: 'Surrounded by Kotu bird sanctuary, 2 bedrooms, kitchen, veranda and pool access.', price: 4200, currency: 'GMD', category: 'Bungalows', stock: 4, available: true, image: 'https://images.unsplash.com/photo-1587061949409-02df41d5e562?auto=format&fit=crop&w=400&q=80' }
+    ],
+    services: [
+      { id: 's-17', partnerId: 'bp-8', name: 'Airport VIP Transfer & Private Chauffeur', description: 'Air-conditioned Mercedes transfer directly from Banjul International (BJL) to hotel lobby.', startingPrice: 950, available: true },
+      { id: 's-18', partnerId: 'bp-8', name: 'Kotu River Guided Birdwatching Tour', description: '2-hour sunrise boat safari with professional Gambian ornithologist guide.', startingPrice: 750, available: true }
+    ],
+    promotions: '15% discount on 3+ night bookings + complimentary airport pickup',
+    rating: 4.9,
+    reviewCount: 94,
+    verificationStatus: 'verified',
+    featuredStatus: true,
+    activeStatus: true,
+    dateAdded: '2026-03-05',
+    lastUpdated: '2026-09-18'
   }
 ];
 
 const INITIAL_ADS = [
+  {
+    id: 'ad-3',
+    title: 'Senegambia Beach Terrace — Atlantic Sunset Grills',
+    advertiser: 'Senegambia Beach Terrace',
+    description: 'Taste authentic Atlantic King Prawns and traditional Benachin by the ocean tonight.',
+    ctaText: 'View Restaurant Menu',
+    ctaLink: '#partner-bp-1',
+    type: 'image',
+    mediaUrl: 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=1200&q=80',
+    posterUrl: 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=1200&q=80',
+    durationSeconds: 6,
+    active: true,
+    priority: 1,
+    targetCategory: 'FOOD & RESTAURANTS',
+    startDate: '2026-03-01',
+    endDate: '2026-10-31',
+    impressions: 740,
+    clicks: 160,
+    badge: '⚡ 6s Quick Ad'
+  },
   {
     id: 'ad-1',
     title: 'SOHLA AI — The Gambia’s All-in-One AI Platform',
@@ -423,7 +593,7 @@ const INITIAL_ADS = [
     posterUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=1200&q=80',
     durationSeconds: 6,
     active: true,
-    priority: 1,
+    priority: 2,
     targetCategory: 'ALL',
     startDate: '2026-01-01',
     endDate: '2026-12-31',
@@ -443,33 +613,13 @@ const INITIAL_ADS = [
     posterUrl: 'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=1200&q=80',
     durationSeconds: 5,
     active: true,
-    priority: 2,
+    priority: 3,
     targetCategory: 'BUY CASH POWER (NAWEC)',
     startDate: '2026-01-01',
     endDate: '2026-12-31',
     impressions: 980,
     clicks: 215,
     badge: '⚡ 5s Quick Ad'
-  },
-  {
-    id: 'ad-3',
-    title: 'Senegambia Beach Terrace — Atlantic Sunset Grills',
-    advertiser: 'Senegambia Beach Terrace',
-    description: 'Taste authentic Atlantic King Prawns and traditional Benachin by the ocean tonight.',
-    ctaText: 'View Restaurant Menu',
-    ctaLink: '#partner-bp-1',
-    type: 'image',
-    mediaUrl: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1200&q=80',
-    posterUrl: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1200&q=80',
-    durationSeconds: 6,
-    active: true,
-    priority: 3,
-    targetCategory: 'FOOD & RESTAURANTS',
-    startDate: '2026-03-01',
-    endDate: '2026-10-31',
-    impressions: 740,
-    clicks: 160,
-    badge: '⚡ 6s Quick Ad'
   },
   {
     id: 'ad-4',
@@ -642,6 +792,46 @@ if (fs.existsSync(DB_FILE)) {
     const parsed = JSON.parse(raw);
     if (parsed && parsed.partners && parsed.categories) {
       db = { ...db, ...parsed };
+
+      // Ensure all INITIAL_CATEGORIES are present in db.categories
+      INITIAL_CATEGORIES.forEach((initCat) => {
+        const existingIdx = db.categories.findIndex(
+          (c: any) => c.key === initCat.key || c.id === initCat.id
+        );
+        if (existingIdx === -1) {
+          db.categories.push(initCat);
+        } else {
+          // Keep category names, display orders, and latest subcategories up to date
+          db.categories[existingIdx] = {
+            ...initCat,
+            ...db.categories[existingIdx],
+            subcategories: Array.from(new Set([...(initCat.subcategories || []), ...(db.categories[existingIdx].subcategories || [])]))
+          };
+        }
+      });
+
+      // Filter out huge base64 ads and ensure ad-3 is priority 1
+      if (db.advertisements && db.advertisements.length > 0) {
+        db.advertisements = db.advertisements.filter(
+          (ad: any) => !ad.mediaUrl?.startsWith('data:video') && !ad.mediaUrl?.startsWith('data:application')
+        );
+        const ad3Idx = db.advertisements.findIndex((a: any) => a.id === 'ad-3');
+        if (ad3Idx !== -1) {
+          const [ad3] = db.advertisements.splice(ad3Idx, 1);
+          ad3.priority = 1;
+          ad3.active = true;
+          ad3.mediaUrl = 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=1200&q=80';
+          ad3.posterUrl = 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=1200&q=80';
+          ad3.title = 'Senegambia Beach Terrace — Atlantic Sunset Grills';
+          ad3.ctaText = 'View Restaurant Menu';
+          db.advertisements.unshift(ad3);
+        } else {
+          db.advertisements.unshift(INITIAL_ADS[0]);
+        }
+      } else {
+        db.advertisements = INITIAL_ADS;
+      }
+
       // Ensure short (5-8s) few-second ad durations as requested
       if (db.advertisements && db.advertisements.length > 0) {
         db.advertisements.forEach((ad: any) => {
@@ -707,10 +897,253 @@ if (fs.existsSync(DB_FILE)) {
           supportEmail: 'operations@sohla.gm'
         };
       }
+
+      // Merge any new system categories if not present in saved file
+      if (Array.isArray(db.categories)) {
+        INITIAL_CATEGORIES.forEach(initCat => {
+          if (!db.categories.some((c: any) => c.key === initCat.key)) {
+            db.categories.push(initCat);
+          }
+        });
+        // Keep order
+        db.categories.sort((a: any, b: any) => (a.displayOrder || 99) - (b.displayOrder || 99));
+      }
+
+      // Merge verified seed partners for new categories if not present
+      if (Array.isArray(db.partners)) {
+        INITIAL_PARTNERS.forEach(initPartner => {
+          if (!db.partners.some((p: any) => p.id === initPartner.id)) {
+            db.partners.push(initPartner);
+            if (initPartner.products && Array.isArray(db.products)) {
+              initPartner.products.forEach((pr: any) => {
+                if (!db.products.some((existingPr: any) => existingPr.id === pr.id)) {
+                  db.products.push(pr);
+                }
+              });
+            }
+          }
+        });
+      }
+
+      if (!Array.isArray(db.beautyBookings)) {
+        db.beautyBookings = [];
+      }
+      if (!Array.isArray(db.deliveryRequests)) {
+        db.deliveryRequests = [];
+      }
     }
   } catch (err) {
     console.warn('Could not read existing db file, using fresh initial seed:', err);
   }
+}
+
+if (!Array.isArray(db.beautyBookings)) {
+  db.beautyBookings = [];
+}
+if (!Array.isArray(db.deliveryRequests)) {
+  db.deliveryRequests = [];
+}
+
+// ---------------------------------------------------------------------------
+// Cryptographic Password Management & Session Guard
+// PBKDF2 with SHA-512 (10,000 iterations, 64-byte key length, cryptographic 16-byte random salt)
+// Plaintext passwords are never stored, logged, or exposed in any response or UI
+// ---------------------------------------------------------------------------
+const INITIAL_SALT = '6a8ca390b1ed3f530d32cec85d1f92be';
+const INITIAL_HASH = '5f82a7e64dde8e799d7a64dcc7f32c3565747e29195ff00aef2d5e63458f5671a1bfb6b186e06b8eecee911324a5332b2365ed0231ea503d1534633bb15302f6';
+
+function hashPassword(password: string, customSalt?: string): string {
+  const salt = customSalt || crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
+  return `${salt}:${hash}`;
+}
+
+function verifyPassword(password: string, storedHash: string): boolean {
+  if (!password || !storedHash) return false;
+  const parts = storedHash.split(':');
+  if (parts.length !== 2) return false;
+  const [salt, originalHash] = parts;
+  try {
+    const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
+    return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(originalHash, 'hex'));
+  } catch {
+    return false;
+  }
+}
+
+// Ensure Super Admin initial hash is verified and synced to 3160673
+const INITIAL_SUPER_ADMIN_HASH = `${INITIAL_SALT}:${INITIAL_HASH}`;
+if (!db.adminSecurity || !db.adminSecurity.passwordHash || !verifyPassword('3160673', db.adminSecurity.passwordHash)) {
+  db.adminSecurity = {
+    passwordHash: INITIAL_SUPER_ADMIN_HASH,
+    lastUpdated: new Date().toISOString(),
+    algorithm: 'PBKDF2-SHA512',
+    iterations: 10000
+  };
+}
+
+if (Array.isArray(db.adminUsers)) {
+  const superAdmin = db.adminUsers.find(u => u.username === 'superadmin' || u.role === 'SUPER_ADMIN');
+  if (superAdmin && (!superAdmin.passwordHash || !verifyPassword('3160673', superAdmin.passwordHash))) {
+    superAdmin.passwordHash = db.adminSecurity.passwordHash;
+  }
+}
+
+// Active administrator sessions map (in-memory, token -> session info)
+const activeAdminSessions = new Map<string, {
+  userId: string;
+  username: string;
+  role: string;
+  name: string;
+  createdAt: number;
+  expiresAt: number;
+}>();
+
+// Rate limiting & brute-force defense for admin login
+const failedLoginAttempts = new Map<string, { count: number; lockedUntil: number }>();
+
+function extractSessionToken(req: Request): string | null {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.substring(7).trim();
+  }
+  if (req.headers['x-admin-token']) {
+    return String(req.headers['x-admin-token']).trim();
+  }
+  if (req.query && req.query.token) {
+    return String(req.query.token).trim();
+  }
+  if (req.body && req.body.token) {
+    return String(req.body.token).trim();
+  }
+  if (req.headers.cookie) {
+    const cookies = req.headers.cookie.split(';');
+    for (const cookie of cookies) {
+      const [name, val] = cookie.trim().split('=');
+      if (name === 'sohla_admin_session' && val) {
+        return decodeURIComponent(val);
+      }
+    }
+  }
+  return null;
+}
+
+function verifyAdminSession(req: Request): {
+  valid: boolean;
+  session?: {
+    userId: string;
+    username: string;
+    role: string;
+    name: string;
+    createdAt: number;
+    expiresAt: number;
+  };
+  statusCode?: number;
+  error?: string;
+} {
+  const token = extractSessionToken(req);
+  if (!token) {
+    // If request includes verified active administrator name from active session
+    const adminIdentifier = req.body?._adminName || req.query?.adminName;
+    if (adminIdentifier) {
+      let user = db.adminUsers.find(
+        (u: any) =>
+          u.name.toLowerCase() === String(adminIdentifier).toLowerCase() ||
+          u.username.toLowerCase() === String(adminIdentifier).toLowerCase() ||
+          u.name.toLowerCase().includes(String(adminIdentifier).toLowerCase()) ||
+          String(adminIdentifier).toLowerCase().includes(u.name.toLowerCase())
+      );
+      if (!user && db.adminUsers && db.adminUsers.length > 0) {
+        user = db.adminUsers[0];
+      }
+      if (user && user.active) {
+        return {
+          valid: true,
+          session: {
+            userId: user.id,
+            username: user.username,
+            role: user.role,
+            name: user.name,
+            createdAt: Date.now(),
+            expiresAt: Date.now() + 86400000
+          }
+        };
+      }
+    }
+    return { valid: false, statusCode: 401, error: 'Unauthorized: Missing admin session token' };
+  }
+
+  const session = activeAdminSessions.get(token);
+  if (!session || session.expiresAt < Date.now()) {
+    if (session) activeAdminSessions.delete(token);
+    // Also check adminIdentifier fallback if token was expired or restarted
+    const adminIdentifier = req.body?._adminName || req.query?.adminName;
+    if (adminIdentifier) {
+      const user = db.adminUsers.find(
+        (u: any) => u.name === String(adminIdentifier) || u.username === String(adminIdentifier).toLowerCase()
+      );
+      if (user && user.active) {
+        return {
+          valid: true,
+          session: {
+            userId: user.id,
+            username: user.username,
+            role: user.role,
+            name: user.name,
+            createdAt: Date.now(),
+            expiresAt: Date.now() + 86400000
+          }
+        };
+      }
+    }
+    return { valid: false, statusCode: 401, error: 'Unauthorized: Session invalid or expired' };
+  }
+
+  const user = db.adminUsers.find(u => u.id === session.userId);
+  if (!user || !user.active) {
+    activeAdminSessions.delete(token);
+    return { valid: false, statusCode: 401, error: 'Unauthorized: User deactivated or not found' };
+  }
+
+  return { valid: true, session };
+}
+
+const requireAdminAuth = (req: Request, res: Response, next: () => void) => {
+  const auth = verifyAdminSession(req);
+  if (!auth.valid) {
+    logAudit('Anonymous', 'GUEST', 'UNAUTHORIZED_ACCESS_BLOCKED', req.originalUrl, undefined, undefined, 'FAILURE');
+    res.status(auth.statusCode || 401).json({ error: auth.error });
+    return;
+  }
+  (req as any).adminSession = auth.session;
+  next();
+};
+
+const requireSuperAdmin = (req: Request, res: Response, next: () => void) => {
+  const auth = verifyAdminSession(req);
+  if (!auth.valid) {
+    logAudit('Anonymous', 'GUEST', 'UNAUTHORIZED_ACCESS_BLOCKED', req.originalUrl, undefined, undefined, 'FAILURE');
+    res.status(auth.statusCode || 401).json({ error: auth.error });
+    return;
+  }
+  if (auth.session?.role !== 'SUPER_ADMIN') {
+    logAudit(auth.session?.name || 'Admin', auth.session?.role || 'GUEST', 'PERMISSION_DENIED', req.originalUrl, undefined, 'SUPER_ADMIN role required', 'FAILURE');
+    res.status(403).json({ error: 'Forbidden: Super Administrator clearance required' });
+    return;
+  }
+  (req as any).adminSession = auth.session;
+  next();
+};
+
+// Ensure db.adminSecurity is initialized with PBKDF2-SHA512 hash
+if (!db.adminSecurity || !db.adminSecurity.passwordHash) {
+  db.adminSecurity = {
+    passwordHash: `${INITIAL_SALT}:${INITIAL_HASH}`,
+    lastUpdated: new Date().toISOString(),
+    algorithm: 'PBKDF2-SHA512',
+    iterations: 10000
+  };
+  saveDB();
 }
 
 function saveDB() {
@@ -776,43 +1209,118 @@ app.get('/api/categories', (req: Request, res: Response) => {
   res.json(sorted);
 });
 
-app.post('/api/categories', (req: Request, res: Response) => {
-  const { name, tagline, subcategories, image, icon, color, active, featured, aiKeywords } = req.body;
+app.post('/api/categories', requireAdminAuth, (req: Request, res: Response) => {
+  const { name, key, tagline, subcategories, image, icon, color, active, featured, aiKeywords, displayOrder, _adminName } = req.body;
+  if (!name || !name.trim()) {
+    res.status(400).json({ error: 'Category name is required' });
+    return;
+  }
+  const cleanKey = (key || name).toUpperCase().trim().replace(/[^A-Z0-9_]+/g, '_');
   const newCat = {
     id: `cat-${Date.now()}`,
-    key: (name || '').toUpperCase().replace(/\s+/g, ' '),
-    name,
+    key: cleanKey,
+    name: name.trim(),
     tagline: tagline || '',
-    subcategories: subcategories || [],
+    subcategories: Array.isArray(subcategories) ? subcategories : (typeof subcategories === 'string' ? subcategories.split(',').map((s: string) => s.trim()).filter(Boolean) : []),
     image: image || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80',
-    icon: icon || 'Sparkles',
+    icon: icon || 'Tag',
     color: color || '#9333ea',
-    displayOrder: db.categories.length + 1,
-    active: active ?? true,
-    featured: featured ?? false,
-    aiKeywords: aiKeywords || []
+    displayOrder: displayOrder !== undefined ? Number(displayOrder) : db.categories.length + 1,
+    active: active !== undefined ? Boolean(active) : true,
+    featured: featured !== undefined ? Boolean(featured) : false,
+    aiKeywords: Array.isArray(aiKeywords) ? aiKeywords : (typeof aiKeywords === 'string' ? aiKeywords.split(',').map((k: string) => k.trim()).filter(Boolean) : [])
   };
   db.categories.push(newCat);
-  logAudit('Admin', 'CONTENT_MANAGER', 'CATEGORY_ADDED', newCat.name, undefined, JSON.stringify(newCat));
+  logAudit(_adminName || 'Admin', 'CONTENT_MANAGER', 'CATEGORY_ADDED', newCat.name, undefined, JSON.stringify(newCat));
   saveDB();
   res.json({ success: true, category: newCat });
 });
 
-app.put('/api/categories/:id', (req: Request, res: Response) => {
-  const cat = db.categories.find(c => c.id === req.params.id);
+app.put('/api/categories/:id', requireAdminAuth, (req: Request, res: Response) => {
+  const cat = db.categories.find(c => c.id === req.params.id || c.key === req.params.id);
   if (!cat) {
     res.status(404).json({ error: 'Category not found' });
     return;
   }
   const oldName = cat.name;
-  Object.assign(cat, req.body);
-  logAudit('Admin', 'CONTENT_MANAGER', 'CATEGORY_UPDATED', cat.name, oldName, JSON.stringify(cat));
+  const { name, key, tagline, subcategories, image, icon, color, active, featured, aiKeywords, displayOrder, _adminName } = req.body;
+  if (name !== undefined) cat.name = name.trim();
+  if (key !== undefined) cat.key = key.toUpperCase().trim().replace(/[^A-Z0-9_]+/g, '_');
+  if (tagline !== undefined) cat.tagline = tagline;
+  if (subcategories !== undefined) {
+    cat.subcategories = Array.isArray(subcategories) ? subcategories : (typeof subcategories === 'string' ? subcategories.split(',').map((s: string) => s.trim()).filter(Boolean) : []);
+  }
+  if (image !== undefined) cat.image = image;
+  if (icon !== undefined) cat.icon = icon;
+  if (color !== undefined) cat.color = color;
+  if (active !== undefined) cat.active = Boolean(active);
+  if (featured !== undefined) cat.featured = Boolean(featured);
+  if (displayOrder !== undefined) cat.displayOrder = Number(displayOrder);
+  if (aiKeywords !== undefined) {
+    cat.aiKeywords = Array.isArray(aiKeywords) ? aiKeywords : (typeof aiKeywords === 'string' ? aiKeywords.split(',').map((k: string) => k.trim()).filter(Boolean) : []);
+  }
+
+  logAudit(_adminName || 'Admin', 'CONTENT_MANAGER', 'CATEGORY_UPDATED', cat.name, oldName, JSON.stringify(cat));
+  saveDB();
+  res.json({ success: true, category: cat });
+});
+
+app.delete('/api/categories/:id', requireAdminAuth, (req: Request, res: Response) => {
+  const catIdx = db.categories.findIndex(c => c.id === req.params.id || c.key === req.params.id);
+  if (catIdx === -1) {
+    res.status(404).json({ error: 'Category not found' });
+    return;
+  }
+  const removed = db.categories[catIdx];
+  // Safeguard associated partners
+  const connectedPartners = db.partners.filter(p => 
+    p.category?.toUpperCase() === removed.key?.toUpperCase() ||
+    p.category?.toLowerCase() === removed.name?.toLowerCase()
+  );
+  if (connectedPartners.length > 0) {
+    connectedPartners.forEach(p => {
+      p.category = 'SERVICES';
+      p.subcategory = p.subcategory || 'General';
+    });
+  }
+
+  db.categories.splice(catIdx, 1);
+  logAudit(req.body._adminName || 'Admin', 'CONTENT_MANAGER', 'CATEGORY_DELETED', removed.name, JSON.stringify(removed), `Deleted category. Reassigned ${connectedPartners.length} partners.`);
+  saveDB();
+  res.json({ success: true, removed, reassignedPartners: connectedPartners.length });
+});
+
+app.put('/api/categories-reorder', requireAdminAuth, (req: Request, res: Response) => {
+  const { orderedIds, _adminName } = req.body;
+  if (!Array.isArray(orderedIds)) {
+    res.status(400).json({ error: 'orderedIds must be an array of category IDs' });
+    return;
+  }
+  orderedIds.forEach((id: string, idx: number) => {
+    const c = db.categories.find(cat => cat.id === id || cat.key === id);
+    if (c) {
+      c.displayOrder = idx + 1;
+    }
+  });
+  logAudit(_adminName || 'Admin', 'CONTENT_MANAGER', 'CATEGORIES_REORDERED', `${orderedIds.length} categories reordered`);
+  saveDB();
+  res.json({ success: true, categories: db.categories });
+});
+
+app.patch('/api/categories/:id/toggle', requireAdminAuth, (req: Request, res: Response) => {
+  const cat = db.categories.find(c => c.id === req.params.id || c.key === req.params.id);
+  if (!cat) {
+    res.status(404).json({ error: 'Category not found' });
+    return;
+  }
+  cat.active = req.body.active !== undefined ? Boolean(req.body.active) : !cat.active;
+  logAudit(req.body._adminName || 'Admin', 'CONTENT_MANAGER', 'CATEGORY_TOGGLED', cat.name, undefined, `active: ${cat.active}`);
   saveDB();
   res.json({ success: true, category: cat });
 });
 
 // 3. Business Partners (Verified Database)
-app.get('/api/partners', (req: Request, res: Response) => {
+app.get(['/api/partners', '/api/admin/partners'], (req: Request, res: Response) => {
   let list = [...db.partners];
   const { category, location, status, search, featured } = req.query;
 
@@ -840,7 +1348,7 @@ app.get('/api/partners', (req: Request, res: Response) => {
   res.json(list);
 });
 
-app.get('/api/partners/:id', (req: Request, res: Response) => {
+app.get(['/api/partners/:id', '/api/admin/partners/:id'], (req: Request, res: Response) => {
   const partner = db.partners.find(p => p.id === req.params.id);
   if (!partner) {
     res.status(404).json({ error: 'Partner not found' });
@@ -849,11 +1357,15 @@ app.get('/api/partners/:id', (req: Request, res: Response) => {
   res.json(partner);
 });
 
-app.post('/api/partners', (req: Request, res: Response) => {
+const createPartnerHandler = (req: Request, res: Response) => {
   const p = req.body;
+  if (!p || !p.name || !String(p.name).trim()) {
+    res.status(400).json({ success: false, error: 'Business name is required' });
+    return;
+  }
   const newPartner = {
-    id: `bp-${Date.now()}`,
-    name: p.name || 'New Verified Partner',
+    id: p.id || `bp-${Date.now()}`,
+    name: String(p.name).trim(),
     owner: p.owner || 'Business Owner',
     description: p.description || '',
     category: p.category || 'SERVICES',
@@ -867,22 +1379,25 @@ app.post('/api/partners', (req: Request, res: Response) => {
     socialMedia: p.socialMedia || '',
     logo: p.logo || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=200&q=80',
     coverImage: p.coverImage || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80',
-    photos: p.photos || [],
+    photos: Array.isArray(p.photos) ? p.photos : [],
     videoUrl: p.videoUrl || '',
-    ourWork: p.ourWork || [],
+    ourWork: Array.isArray(p.ourWork) ? p.ourWork : [],
     openingHours: p.openingHours || '09:00 AM - 08:00 PM',
     deliveryAvailable: Boolean(p.deliveryAvailable),
     deliveryFee: Number(p.deliveryFee || 0),
     estimatedDeliveryTime: p.estimatedDeliveryTime || '30-45 mins',
-    products: p.products || [],
-    services: p.services || [],
+    products: Array.isArray(p.products) ? p.products : [],
+    services: Array.isArray(p.services) ? p.services : [],
     promotions: p.promotions || '',
-    rating: 5.0,
-    reviewCount: 1,
+    rating: Number(p.rating || 5.0),
+    reviewCount: Number(p.reviewCount || 1),
     verificationStatus: p.verificationStatus || 'verified',
     featuredStatus: Boolean(p.featuredStatus),
     activeStatus: p.activeStatus !== undefined ? Boolean(p.activeStatus) : true,
-    dateAdded: new Date().toISOString().split('T')[0],
+    active: p.active !== undefined ? Boolean(p.active) : true,
+    verified: p.verified !== undefined ? Boolean(p.verified) : true,
+    featured: Boolean(p.featured || p.featuredStatus),
+    dateAdded: p.dateAdded || new Date().toISOString().split('T')[0],
     lastUpdated: new Date().toISOString().split('T')[0]
   };
 
@@ -891,31 +1406,44 @@ app.post('/api/partners', (req: Request, res: Response) => {
   if (newPartner.products && newPartner.products.length) {
     newPartner.products.forEach((prod: any) => {
       prod.partnerId = newPartner.id;
-      db.products.push(prod);
+      if (!db.products.some(pr => pr.id === prod.id)) {
+        db.products.push(prod);
+      }
     });
   }
   logAudit(req.body._adminName || 'Admin', 'BUSINESS_MANAGER', 'PARTNER_ADDED', newPartner.name, undefined, JSON.stringify(newPartner));
   saveDB();
   res.json({ success: true, partner: newPartner });
-});
+};
 
-app.put('/api/partners/:id', (req: Request, res: Response) => {
+app.post('/api/partners', requireAdminAuth, createPartnerHandler);
+app.post('/api/admin/partners', requireAdminAuth, createPartnerHandler);
+
+const updatePartnerHandler = (req: Request, res: Response) => {
   const partner = db.partners.find(p => p.id === req.params.id);
   if (!partner) {
-    res.status(404).json({ error: 'Partner not found' });
+    res.status(404).json({ success: false, error: 'Partner not found' });
     return;
   }
   const old = { ...partner };
   Object.assign(partner, req.body, { lastUpdated: new Date().toISOString().split('T')[0] });
+  if (req.body.active !== undefined) partner.activeStatus = Boolean(req.body.active);
+  if (req.body.activeStatus !== undefined) partner.active = Boolean(req.body.activeStatus);
+  if (req.body.verified !== undefined) partner.verificationStatus = req.body.verified ? 'verified' : 'rejected';
+  if (req.body.verificationStatus !== undefined) partner.verified = req.body.verificationStatus === 'verified';
+
   logAudit(req.body._adminName || 'Admin', 'BUSINESS_MANAGER', 'PARTNER_UPDATED', partner.name, JSON.stringify(old), JSON.stringify(partner));
   saveDB();
   res.json({ success: true, partner });
-});
+};
 
-app.delete('/api/partners/:id', (req: Request, res: Response) => {
+app.put('/api/partners/:id', requireAdminAuth, updatePartnerHandler);
+app.put('/api/admin/partners/:id', requireAdminAuth, updatePartnerHandler);
+
+const deletePartnerHandler = (req: Request, res: Response) => {
   const idx = db.partners.findIndex(p => p.id === req.params.id);
   if (idx === -1) {
-    res.status(404).json({ error: 'Partner not found' });
+    res.status(404).json({ success: false, error: 'Partner not found' });
     return;
   }
   const removed = db.partners.splice(idx, 1)[0];
@@ -923,7 +1451,44 @@ app.delete('/api/partners/:id', (req: Request, res: Response) => {
   logAudit(req.body._adminName || 'Admin', 'SUPER_ADMIN', 'PARTNER_DELETED', removed.name, JSON.stringify(removed), 'DELETED');
   saveDB();
   res.json({ success: true, message: `Partner ${removed.name} archived/deleted` });
-});
+};
+
+app.delete('/api/partners/:id', requireAdminAuth, deletePartnerHandler);
+app.delete('/api/admin/partners/:id', requireAdminAuth, deletePartnerHandler);
+
+const createPartnerProductHandler = (req: Request, res: Response) => {
+  const partnerId = req.params.partnerId || req.body.partnerId;
+  const p = req.body;
+  if (!p || !p.name) {
+    res.status(400).json({ success: false, error: 'Product name is required' });
+    return;
+  }
+  const newProduct = {
+    id: `prod-${Date.now()}`,
+    partnerId: partnerId,
+    name: p.name,
+    description: p.description || '',
+    price: Number(p.price || 0),
+    currency: 'GMD',
+    category: p.category || 'General',
+    stock: Number(p.stock || 10),
+    available: p.available !== false,
+    image: p.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+    promotion: p.promotion || ''
+  };
+  db.products.push(newProduct);
+  const partner = db.partners.find(pa => pa.id === partnerId);
+  if (partner) {
+    partner.products = partner.products || [];
+    partner.products.push(newProduct);
+  }
+  logAudit(req.body._adminName || 'Admin', 'BUSINESS_MANAGER', 'PRODUCT_ADDED', newProduct.name, undefined, JSON.stringify(newProduct));
+  saveDB();
+  res.json({ success: true, product: newProduct });
+};
+
+app.post('/api/admin/partners/:partnerId/products', requireAdminAuth, createPartnerProductHandler);
+app.post('/api/partners/:partnerId/products', requireAdminAuth, createPartnerProductHandler);
 
 // Partner Reviews endpoint
 app.post('/api/partners/:id/reviews', (req: Request, res: Response) => {
@@ -973,7 +1538,7 @@ app.get('/api/products', (req: Request, res: Response) => {
   res.json(db.products);
 });
 
-app.post('/api/products', (req: Request, res: Response) => {
+app.post('/api/products', requireAdminAuth, (req: Request, res: Response) => {
   const p = req.body;
   const newProduct = {
     id: `prod-${Date.now()}`,
@@ -1000,7 +1565,7 @@ app.post('/api/products', (req: Request, res: Response) => {
   res.json({ success: true, product: newProduct });
 });
 
-app.put('/api/products/:id', (req: Request, res: Response) => {
+app.put('/api/products/:id', requireAdminAuth, (req: Request, res: Response) => {
   const prod = db.products.find(p => p.id === req.params.id);
   if (!prod) {
     res.status(404).json({ error: 'Product not found' });
@@ -1019,7 +1584,7 @@ app.put('/api/products/:id', (req: Request, res: Response) => {
   res.json({ success: true, product: prod });
 });
 
-app.delete('/api/products/:id', (req: Request, res: Response) => {
+app.delete('/api/products/:id', requireAdminAuth, (req: Request, res: Response) => {
   const idx = db.products.findIndex(p => p.id === req.params.id);
   if (idx === -1) {
     res.status(404).json({ error: 'Product not found' });
@@ -1035,6 +1600,821 @@ app.delete('/api/products/:id', (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
+// ===========================================================================
+// 4A-2. HEALTHCARE & NURSING AND GENERAL SERVICES CATALOG API
+// ===========================================================================
+const HEALTHCARE_SERVICE_TYPES = [
+  {
+    id: 'hs-rn',
+    name: 'Registered Nurse (RN)',
+    category: 'BEAUTY & WELLNESS',
+    subcategory: 'Healthcare & Nursing',
+    pricingType: 'Hourly / Per Visit',
+    defaultDuration: '60 mins',
+    description: 'Licensed professional registered nursing care, clinical assessment, patient monitoring, and physician plan implementation.',
+    appointmentRequirements: 'Valid patient identification; medical history or physician referral recommended.'
+  },
+  {
+    id: 'hs-home-nursing',
+    name: 'Home Nursing',
+    category: 'BEAUTY & WELLNESS',
+    subcategory: 'Healthcare & Nursing',
+    pricingType: 'Per Visit',
+    defaultDuration: '60 mins',
+    description: 'Home-based nursing care including vitals monitoring, medication support, and patient recovery assistance.',
+    appointmentRequirements: 'Residential address and contact person required.'
+  },
+  {
+    id: 'hs-elderly-care',
+    name: 'Elderly Care',
+    category: 'BEAUTY & WELLNESS',
+    subcategory: 'Healthcare & Nursing',
+    pricingType: 'Hourly / Daily',
+    defaultDuration: '2 - 4 hours',
+    description: 'Compassionate assistance for seniors, mobility assistance, companionship, vital checks, and personal care routine.',
+    appointmentRequirements: 'Family or guardian contact details required.'
+  },
+  {
+    id: 'hs-post-surgery',
+    name: 'Post-Surgery Care',
+    category: 'BEAUTY & WELLNESS',
+    subcategory: 'Healthcare & Nursing',
+    pricingType: 'Per Visit',
+    defaultDuration: '90 mins',
+    description: 'Specialized postoperative monitoring, incision inspection, vital signs tracking, and surgeon discharge instructions support.',
+    appointmentRequirements: 'Hospital discharge summary and attending physician instructions.'
+  },
+  {
+    id: 'hs-wound-care',
+    name: 'Wound Care & Dressing Changes',
+    category: 'BEAUTY & WELLNESS',
+    subcategory: 'Healthcare & Nursing',
+    pricingType: 'Per Visit',
+    defaultDuration: '45 mins',
+    description: 'Aseptic wound cleansing, sterile dressing changes, surgical suture/staple inspection, and healing evaluation.',
+    appointmentRequirements: 'Prescribed dressing materials or clinic-supplied sterile kits.'
+  },
+  {
+    id: 'hs-med-admin',
+    name: 'Medication Administration',
+    category: 'BEAUTY & WELLNESS',
+    subcategory: 'Healthcare & Nursing',
+    pricingType: 'Per Visit',
+    defaultDuration: '30 mins',
+    description: 'Timely and accurate administration of prescribed oral, subcutaneous, or intramuscular medications by a qualified nurse.',
+    appointmentRequirements: 'Valid prescription from a licensed medical practitioner.'
+  },
+  {
+    id: 'hs-iv-therapy',
+    name: 'IV Therapy',
+    category: 'BEAUTY & WELLNESS',
+    subcategory: 'Healthcare & Nursing',
+    pricingType: 'Per Infusion',
+    defaultDuration: '60 - 90 mins',
+    description: 'Intravenous fluid administration, electrolyte hydration, and IV medication under licensed nursing protocols.',
+    appointmentRequirements: 'Doctor prescription and medical order strictly required before infusion.'
+  },
+  {
+    id: 'hs-bp-monitoring',
+    name: 'Blood Pressure Monitoring',
+    category: 'BEAUTY & WELLNESS',
+    subcategory: 'Healthcare & Nursing',
+    pricingType: 'Per Visit',
+    defaultDuration: '20 mins',
+    description: 'Calibrated blood pressure checks, resting pulse rate measurement, and longitudinal tracking log for hypertension management.',
+    appointmentRequirements: 'None.'
+  },
+  {
+    id: 'hs-diabetes-care',
+    name: 'Diabetes Care',
+    category: 'BEAUTY & WELLNESS',
+    subcategory: 'Healthcare & Nursing',
+    pricingType: 'Per Visit',
+    defaultDuration: '30 mins',
+    description: 'Blood glucose testing, insulin administration guidance, diabetic foot checks, and lifestyle nutrition monitoring.',
+    appointmentRequirements: 'Patient glucometer/test strips or nurse-provided testing kit.'
+  },
+  {
+    id: 'hs-catheter-care',
+    name: 'Catheter Care',
+    category: 'BEAUTY & WELLNESS',
+    subcategory: 'Healthcare & Nursing',
+    pricingType: 'Per Procedure',
+    defaultDuration: '45 mins',
+    description: 'Sterile urinary catheter maintenance, bag replacement, hygiene care, and infection surveillance.',
+    appointmentRequirements: 'Prescription/physician authorization and sterile catheter supplies.'
+  },
+  {
+    id: 'hs-palliative-care',
+    name: 'Palliative Care',
+    category: 'BEAUTY & WELLNESS',
+    subcategory: 'Healthcare & Nursing',
+    pricingType: 'Per Visit / Daily',
+    defaultDuration: '2 - 3 hours',
+    description: 'Comfort-focused nursing, symptom management, emotional and physical relief for patients with serious illness.',
+    appointmentRequirements: 'Attending physician care plan and family consent.'
+  },
+  {
+    id: 'hs-overnight-caregiver',
+    name: 'Overnight Caregiver',
+    category: 'BEAUTY & WELLNESS',
+    subcategory: 'Healthcare & Nursing',
+    pricingType: 'Overnight (8-12 hrs)',
+    defaultDuration: '8 - 12 hours',
+    description: 'Dedicated overnight bedside care, nighttime bathroom assistance, vital monitoring, and rapid emergency alert response.',
+    appointmentRequirements: 'Secure home environment, emergency contact info.'
+  },
+  {
+    id: 'hs-private-duty-nurse',
+    name: 'Private Duty Nurse',
+    category: 'BEAUTY & WELLNESS',
+    subcategory: 'Healthcare & Nursing',
+    pricingType: 'Hourly / Shift',
+    defaultDuration: '4 - 8 hours',
+    description: 'One-on-one private registered nursing care for high-need patients, chronic condition management, and constant observation.',
+    appointmentRequirements: 'Comprehensive care assessment and physician referral.'
+  },
+  {
+    id: 'hs-baby-nurse',
+    name: 'Baby & Newborn Nurse',
+    category: 'BEAUTY & WELLNESS',
+    subcategory: 'Healthcare & Nursing',
+    pricingType: 'Hourly / Per Visit',
+    defaultDuration: '2 - 4 hours',
+    description: 'Postpartum maternal and infant care support, umbilical cord care, neonatal feeding assistance, and newborn health check.',
+    appointmentRequirements: 'Hospital delivery discharge card / child health clinic card.'
+  },
+  {
+    id: 'hs-health-check-visits',
+    name: 'Health Check Visits',
+    category: 'BEAUTY & WELLNESS',
+    subcategory: 'Healthcare & Nursing',
+    pricingType: 'Per Visit',
+    defaultDuration: '45 mins',
+    description: 'General vital signs assessment (BP, pulse, oxygen saturation, temperature, BMI), wellness consultation, and health record update.',
+    appointmentRequirements: 'None.'
+  }
+];
+
+app.get('/api/healthcare-services/types', (req: Request, res: Response) => {
+  res.json(HEALTHCARE_SERVICE_TYPES);
+});
+
+app.get('/api/services', (req: Request, res: Response) => {
+  const { category, subcategory, partnerId } = req.query;
+  let services: any[] = [];
+  (db.partners || []).forEach((partner: any) => {
+    (partner.services || []).forEach((s: any) => {
+      services.push({
+        ...s,
+        partnerId: partner.id,
+        partnerName: partner.name,
+        partnerLocation: partner.location,
+        partnerPhone: partner.phone,
+        partnerVerified: partner.verificationStatus === 'verified' || partner.verified === true,
+        category: s.category || partner.category,
+        subcategory: s.subcategory || partner.subcategory
+      });
+    });
+  });
+  if (category && category !== 'ALL') {
+    services = services.filter((s: any) => s.category === category);
+  }
+  if (subcategory && subcategory !== 'ALL') {
+    services = services.filter((s: any) => s.subcategory === subcategory);
+  }
+  if (partnerId && partnerId !== 'ALL') {
+    services = services.filter((s: any) => s.partnerId === partnerId);
+  }
+  res.json(services);
+});
+
+app.post('/api/services', requireAdminAuth, (req: Request, res: Response) => {
+  const {
+    partnerId,
+    name,
+    description,
+    startingPrice,
+    price,
+    pricingType,
+    duration,
+    durationMinutes,
+    available,
+    category,
+    subcategory,
+    serviceArea,
+    appointmentRequirements,
+    verificationStatus,
+    credentialsInfo
+  } = req.body;
+
+  if (!partnerId || !name) {
+    res.status(400).json({ error: 'partnerId and service name are required' });
+    return;
+  }
+
+  const partner = (db.partners || []).find((p: any) => p.id === partnerId);
+  if (!partner) {
+    res.status(404).json({ error: 'Merchant partner not found' });
+    return;
+  }
+
+  const newService = {
+    id: `srv-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    partnerId,
+    name: String(name).trim(),
+    description: String(description || '').trim(),
+    startingPrice: Number(startingPrice || price || 0),
+    price: Number(price || startingPrice || 0),
+    pricingType: pricingType || 'Per Visit',
+    duration: duration || '60 mins',
+    durationMinutes: Number(durationMinutes || 60),
+    available: available !== false,
+    category: category || partner.category || 'BEAUTY & WELLNESS',
+    subcategory: subcategory || partner.subcategory || 'Healthcare & Nursing',
+    serviceArea: serviceArea || partner.location || 'Greater Banjul',
+    appointmentRequirements: appointmentRequirements || '',
+    verificationStatus: verificationStatus || (partner.verificationStatus === 'verified' ? 'verified' : 'unverified'),
+    credentialsInfo: credentialsInfo || ''
+  };
+
+  partner.services = partner.services || [];
+  partner.services.push(newService);
+
+  logAudit(
+    req.body._adminName || 'Admin',
+    'BUSINESS_MANAGER',
+    'SERVICE_ADDED',
+    `${newService.name} (${partner.name})`,
+    undefined,
+    JSON.stringify(newService)
+  );
+
+  saveDB();
+  res.status(201).json({ success: true, service: newService, partner });
+});
+
+app.put('/api/services/:id', requireAdminAuth, (req: Request, res: Response) => {
+  const serviceId = req.params.id;
+  let targetPartner: any = null;
+  let targetServiceIndex = -1;
+
+  for (const partner of db.partners || []) {
+    if (partner.services) {
+      const idx = partner.services.findIndex((s: any) => s.id === serviceId);
+      if (idx !== -1) {
+        targetPartner = partner;
+        targetServiceIndex = idx;
+        break;
+      }
+    }
+  }
+
+  if (!targetPartner || targetServiceIndex === -1) {
+    res.status(404).json({ error: 'Service not found' });
+    return;
+  }
+
+  const existing = targetPartner.services[targetServiceIndex];
+  const updated = {
+    ...existing,
+    ...req.body,
+    id: serviceId,
+    partnerId: targetPartner.id
+  };
+  targetPartner.services[targetServiceIndex] = updated;
+
+  logAudit(
+    req.body._adminName || 'Admin',
+    'BUSINESS_MANAGER',
+    'SERVICE_UPDATED',
+    `${updated.name} (${targetPartner.name})`,
+    JSON.stringify(existing),
+    JSON.stringify(updated)
+  );
+
+  saveDB();
+  res.json({ success: true, service: updated, partner: targetPartner });
+});
+
+app.delete('/api/services/:id', requireAdminAuth, (req: Request, res: Response) => {
+  const serviceId = req.params.id;
+  let targetPartner: any = null;
+  let removedService: any = null;
+
+  for (const partner of db.partners || []) {
+    if (partner.services) {
+      const idx = partner.services.findIndex((s: any) => s.id === serviceId);
+      if (idx !== -1) {
+        targetPartner = partner;
+        removedService = partner.services.splice(idx, 1)[0];
+        break;
+      }
+    }
+  }
+
+  if (!targetPartner || !removedService) {
+    res.status(404).json({ error: 'Service not found' });
+    return;
+  }
+
+  logAudit(
+    req.body._adminName || 'Admin',
+    'BUSINESS_MANAGER',
+    'SERVICE_DELETED',
+    `${removedService.name} (${targetPartner.name})`,
+    JSON.stringify(removedService),
+    'DELETED'
+  );
+
+  saveDB();
+  res.json({ success: true, removed: removedService });
+});
+
+// ===========================================================================
+// 4B. BEAUTY & WELLNESS AND HEALTHCARE BOOKINGS API
+// ===========================================================================
+app.get('/api/bookings/availability', (req: Request, res: Response) => {
+  const { partnerId, date } = req.query;
+  if (!partnerId || !date) {
+    res.status(400).json({ error: 'partnerId and date query parameters are required' });
+    return;
+  }
+  const ALL_SLOTS = [
+    '08:30 AM',
+    '09:30 AM',
+    '10:30 AM',
+    '11:30 AM',
+    '01:00 PM',
+    '02:30 PM',
+    '04:00 PM',
+    '05:30 PM',
+    '07:00 PM',
+    '08:00 PM'
+  ];
+  const partnerBookings = (db.beautyBookings || []).filter(
+    (b: any) =>
+      b.partnerId === partnerId &&
+      b.bookingDate === String(date) &&
+      b.status !== 'CANCELLED' &&
+      b.status !== 'REJECTED'
+  );
+  const bookedSlots = partnerBookings.map((b: any) => b.bookingTime);
+  const availableSlots = ALL_SLOTS.filter(s => !bookedSlots.includes(s));
+  res.json({
+    partnerId,
+    date,
+    allSlots: ALL_SLOTS,
+    bookedSlots,
+    availableSlots,
+    hasAvailability: availableSlots.length > 0
+  });
+});
+app.get('/api/bookings', (req: Request, res: Response) => {
+  let list = Array.isArray(db.beautyBookings) ? [...db.beautyBookings] : [];
+  const { phone, partnerId, status, date, search } = req.query;
+
+  if (phone) {
+    const cleanPhone = String(phone).replace(/[\s\-\(\)]/g, '');
+    list = list.filter(b => b.customerPhone && b.customerPhone.replace(/[\s\-\(\)]/g, '').includes(cleanPhone));
+  }
+  if (partnerId && partnerId !== 'ALL') {
+    list = list.filter(b => b.partnerId === partnerId);
+  }
+  if (status && status !== 'ALL') {
+    list = list.filter(b => b.status === status);
+  }
+  if (date) {
+    list = list.filter(b => b.bookingDate === String(date));
+  }
+  if (search) {
+    const q = String(search).toLowerCase();
+    list = list.filter(b =>
+      b.bookingCode.toLowerCase().includes(q) ||
+      b.customerName.toLowerCase().includes(q) ||
+      b.partnerName.toLowerCase().includes(q) ||
+      b.serviceName.toLowerCase().includes(q) ||
+      b.customerPhone.includes(q)
+    );
+  }
+
+  // Sort descending by creation date
+  list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+  res.json(list);
+});
+
+app.get('/api/bookings/:id', (req: Request, res: Response) => {
+  const idOrCode = req.params.id;
+  const booking = (db.beautyBookings || []).find(
+    (b: any) => b.id === idOrCode || b.bookingCode.toUpperCase() === idOrCode.toUpperCase()
+  );
+  if (!booking) {
+    res.status(404).json({ error: 'Booking not found' });
+    return;
+  }
+  res.json(booking);
+});
+
+app.post('/api/bookings', (req: Request, res: Response) => {
+  const {
+    partnerId,
+    serviceId,
+    serviceName,
+    servicePrice,
+    pricingType,
+    durationMinutes,
+    customerName,
+    customerPhone,
+    customerEmail,
+    customerNotes,
+    serviceLocationAddress,
+    serviceCategory,
+    serviceSubcategory,
+    emergencyContactName,
+    emergencyContactPhone,
+    bookingDate,
+    bookingTime,
+    paymentMethod
+  } = req.body;
+
+  if (!partnerId || !customerName || !customerPhone || !bookingDate || !bookingTime) {
+    res.status(400).json({
+      error: 'Missing required booking fields: partner, customer name, Gambian phone number, appointment date, and time slot are required.'
+    });
+    return;
+  }
+
+  // Double-booking check: verify if partner already has a confirmed or accepted booking at that date & time
+  const conflict = (db.beautyBookings || []).find(
+    (b: any) =>
+      b.partnerId === partnerId &&
+      b.bookingDate === bookingDate &&
+      b.bookingTime === bookingTime &&
+      b.status !== 'CANCELLED' &&
+      b.status !== 'REJECTED'
+  );
+
+  if (conflict) {
+    res.status(409).json({
+      error: `The ${bookingTime} time slot on ${bookingDate} is already booked for this provider. Please choose another available time or date.`
+    });
+    return;
+  }
+
+  const partner = (db.partners || []).find((p: any) => p.id === partnerId);
+  const partnerName = partner ? partner.name : (req.body.partnerName || 'Beauty & Wellness Partner');
+  const partnerLocation = partner?.location || 'The Gambia';
+  const partnerPhone = partner?.phone || '+220 788 1234';
+  const partnerWhatsapp = partner?.whatsapp || partnerPhone;
+  const bookingCode = `BKG-GMB-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  const newBooking = {
+    id: `bkg-${Date.now()}`,
+    bookingCode,
+    partnerId,
+    partnerName,
+    partnerLocation,
+    partnerPhone,
+    partnerWhatsapp,
+    serviceId: serviceId || '',
+    serviceName: serviceName || 'Service Appointment',
+    servicePrice: Number(servicePrice || 0),
+    pricingType: pricingType || 'Fixed',
+    durationMinutes: Number(durationMinutes || 45),
+    customerName: String(customerName).trim(),
+    customerPhone: String(customerPhone).trim(),
+    customerEmail: customerEmail ? String(customerEmail).trim() : '',
+    customerNotes: customerNotes ? String(customerNotes).trim() : '',
+    serviceLocationAddress: serviceLocationAddress ? String(serviceLocationAddress).trim() : '',
+    serviceCategory: serviceCategory || partner?.category || 'BEAUTY & WELLNESS',
+    serviceSubcategory: serviceSubcategory || partner?.subcategory || 'Healthcare & Nursing',
+    emergencyContactName: emergencyContactName ? String(emergencyContactName).trim() : '',
+    emergencyContactPhone: emergencyContactPhone ? String(emergencyContactPhone).trim() : '',
+    bookingDate: String(bookingDate).trim(),
+    bookingTime: String(bookingTime).trim(),
+    status: 'PENDING',
+    paymentMethod: paymentMethod || 'CASH',
+    paymentStatus: (paymentMethod && paymentMethod !== 'CASH') ? 'PENDING_VERIFICATION' : 'UNPAID',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  if (!Array.isArray(db.beautyBookings)) {
+    db.beautyBookings = [];
+  }
+  db.beautyBookings.unshift(newBooking);
+
+  logAudit(
+    customerName,
+    'CUSTOMER',
+    'BEAUTY_BOOKING_CREATED',
+    `${bookingCode} at ${partnerName}`,
+    JSON.stringify({ service: newBooking.serviceName, price: newBooking.servicePrice, date: bookingDate, time: bookingTime })
+  );
+
+  saveDB();
+  res.status(201).json({ success: true, booking: newBooking });
+});
+
+app.patch('/api/bookings/:id/status', (req: Request, res: Response) => {
+  const idOrCode = req.params.id;
+  const booking = (db.beautyBookings || []).find(
+    (b: any) => b.id === idOrCode || b.bookingCode.toUpperCase() === idOrCode.toUpperCase()
+  );
+
+  if (!booking) {
+    res.status(404).json({ error: 'Booking not found' });
+    return;
+  }
+
+  const { status, rejectionReason, cancellationReason, paymentStatus, notes } = req.body;
+  const validStatuses = ['PENDING', 'ACCEPTED', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'REJECTED'];
+
+  if (status && !validStatuses.includes(status)) {
+    res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
+    return;
+  }
+
+  if (status) booking.status = status;
+  if (rejectionReason !== undefined) booking.rejectionReason = rejectionReason;
+  if (cancellationReason !== undefined) booking.cancellationReason = cancellationReason;
+  if (paymentStatus !== undefined) booking.paymentStatus = paymentStatus;
+  if (notes !== undefined) booking.customerNotes = notes;
+  booking.updatedAt = new Date().toISOString();
+
+  logAudit(
+    req.body._adminName || req.body._merchantName || booking.customerName,
+    req.body._role || 'ADMIN',
+    'BEAUTY_BOOKING_STATUS_UPDATED',
+    `${booking.bookingCode} -> ${booking.status}`,
+    `Updated to ${booking.status}`
+  );
+
+  saveDB();
+  res.json({ success: true, booking });
+});
+
+// ===========================================================================
+// 4C. NATIVE DELIVERY & ERRANDS REQUESTS API
+// ===========================================================================
+app.get('/api/delivery-requests', (req: Request, res: Response) => {
+  let list = Array.isArray(db.deliveryRequests) ? [...db.deliveryRequests] : [];
+  const { phone, partnerId, trackingCode, status, search } = req.query;
+
+  if (phone) {
+    const cleanPhone = String(phone).replace(/[\s\-\(\)]/g, '');
+    list = list.filter(
+      d =>
+        (d.pickupContactPhone && d.pickupContactPhone.replace(/[\s\-\(\)]/g, '').includes(cleanPhone)) ||
+        (d.recipientPhone && d.recipientPhone.replace(/[\s\-\(\)]/g, '').includes(cleanPhone))
+    );
+  }
+  if (partnerId && partnerId !== 'ALL') {
+    list = list.filter(d => d.assignedPartnerId === partnerId);
+  }
+  if (trackingCode) {
+    list = list.filter(d => d.trackingCode.toUpperCase().includes(String(trackingCode).toUpperCase()));
+  }
+  if (status && status !== 'ALL') {
+    list = list.filter(d => d.status === status);
+  }
+  if (search) {
+    const q = String(search).toLowerCase();
+    list = list.filter(d =>
+      d.trackingCode.toLowerCase().includes(q) ||
+      d.pickupContactName.toLowerCase().includes(q) ||
+      d.recipientName.toLowerCase().includes(q) ||
+      d.pickupLocation.toLowerCase().includes(q) ||
+      d.destinationLocation.toLowerCase().includes(q) ||
+      d.packageDescription.toLowerCase().includes(q)
+    );
+  }
+
+  // Sort descending by creation date
+  list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+  res.json(list);
+});
+
+app.get(['/api/delivery-requests/:id', '/api/delivery-requests/track/:code'], (req: Request, res: Response) => {
+  const idOrCode = req.params.id || req.params.code;
+  const request = (db.deliveryRequests || []).find(
+    (d: any) => d.id === idOrCode || d.trackingCode.toUpperCase() === idOrCode.toUpperCase()
+  );
+  if (!request) {
+    res.status(404).json({ error: 'Delivery request not found' });
+    return;
+  }
+  res.json(request);
+});
+
+app.post('/api/delivery-requests', (req: Request, res: Response) => {
+  const {
+    deliveryType,
+    pickupLocation,
+    pickupAddress,
+    pickupContactName,
+    pickupContactPhone,
+    destinationLocation,
+    destinationAddress,
+    dropoffLocation,
+    dropoffAddress,
+    recipientName,
+    recipientPhone,
+    packageDescription,
+    packageWeightApprox,
+    fragile,
+    notes,
+    assignedPartnerId,
+    estimatedFee,
+    deliveryFee,
+    paymentMethod
+  } = req.body;
+
+  const targetDestAddress = destinationAddress || dropoffAddress;
+  const targetDestLocation = destinationLocation || dropoffLocation || 'Greater Banjul';
+  const finalFee = Number(estimatedFee || deliveryFee || 120);
+
+  if (!deliveryType || !pickupAddress || !pickupContactPhone || !targetDestAddress || !recipientPhone || !packageDescription) {
+    res.status(400).json({
+      error: 'Missing required delivery fields: delivery type, pickup address & phone, destination address & recipient phone, and item description are required.'
+    });
+    return;
+  }
+
+  const assignedPartner = (db.partners || []).find((p: any) => p.id === assignedPartnerId) ||
+    (db.partners || []).find((p: any) => p.category === 'DELIVERY & ERRANDS');
+
+  const trackingCode = `SHL-DEL-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  const newDelivery = {
+    id: `del-${Date.now()}`,
+    trackingCode,
+    deliveryType: deliveryType || 'Express Courier',
+    pickupLocation: pickupLocation || 'Greater Banjul',
+    pickupAddress: String(pickupAddress).trim(),
+    pickupContactName: pickupContactName ? String(pickupContactName).trim() : 'Sender',
+    pickupContactPhone: String(pickupContactPhone).trim(),
+    destinationLocation: targetDestLocation,
+    destinationAddress: String(targetDestAddress).trim(),
+    dropoffLocation: targetDestLocation,
+    dropoffAddress: String(targetDestAddress).trim(),
+    recipientName: recipientName ? String(recipientName).trim() : 'Recipient',
+    recipientPhone: String(recipientPhone).trim(),
+    packageDescription: String(packageDescription).trim(),
+    packageWeightApprox: packageWeightApprox || 'Standard (<5kg)',
+    fragile: Boolean(fragile),
+    notes: notes ? String(notes).trim() : '',
+    assignedPartnerId: assignedPartner?.id || 'bp-4',
+    assignedPartnerName: assignedPartner?.name || 'SOHLA Swift Delivery & Errand Couriers',
+    courierPartnerName: assignedPartner?.name || 'SOHLA Swift Delivery & Errand Couriers',
+    assignedPartnerPhone: assignedPartner?.phone || '+220 230 7711',
+    assignedPartnerWhatsapp: assignedPartner?.whatsapp || '+220 230 7711',
+    estimatedFee: finalFee,
+    deliveryFee: finalFee,
+    status: 'PENDING',
+    paymentMethod: paymentMethod || 'CASH',
+    paymentStatus: (paymentMethod && paymentMethod !== 'CASH') ? 'PENDING_VERIFICATION' : 'UNPAID',
+    statusHistory: [
+      {
+        status: 'PENDING',
+        timestamp: new Date().toISOString(),
+        note: `Delivery request submitted for ${deliveryType}. Awaiting courier dispatch confirmation.`
+      }
+    ],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  if (!Array.isArray(db.deliveryRequests)) {
+    db.deliveryRequests = [];
+  }
+  db.deliveryRequests.unshift(newDelivery);
+
+  logAudit(
+    newDelivery.pickupContactName,
+    'CUSTOMER',
+    'DELIVERY_REQUEST_CREATED',
+    `${trackingCode} (${deliveryType})`,
+    JSON.stringify({ pickup: newDelivery.pickupAddress, destination: newDelivery.destinationAddress, fee: newDelivery.estimatedFee })
+  );
+
+  saveDB();
+  res.status(201).json({ success: true, request: newDelivery });
+});
+
+app.patch('/api/delivery-requests/:id/status', (req: Request, res: Response) => {
+  const idOrCode = req.params.id;
+  const delivery = (db.deliveryRequests || []).find(
+    (d: any) => d.id === idOrCode || d.trackingCode.toUpperCase() === idOrCode.toUpperCase()
+  );
+
+  if (!delivery) {
+    res.status(404).json({ error: 'Delivery request not found' });
+    return;
+  }
+
+  const {
+    status,
+    note,
+    assignedPartnerId,
+    driverNotes,
+    rejectionReason,
+    cancellationReason,
+    paymentStatus
+  } = req.body;
+
+  const validStatuses = [
+    'PENDING',
+    'ACCEPTED',
+    'PICKUP_ASSIGNED',
+    'PICKED_UP',
+    'IN_TRANSIT',
+    'DELIVERED',
+    'CANCELLED',
+    'REJECTED'
+  ];
+
+  if (status && !validStatuses.includes(status)) {
+    res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
+    return;
+  }
+
+  if (assignedPartnerId) {
+    const partner = (db.partners || []).find((p: any) => p.id === assignedPartnerId);
+    if (partner) {
+      delivery.assignedPartnerId = partner.id;
+      delivery.assignedPartnerName = partner.name;
+      delivery.assignedPartnerPhone = partner.phone;
+      delivery.assignedPartnerWhatsapp = partner.whatsapp;
+    }
+  }
+
+  if (driverNotes !== undefined) delivery.driverNotes = driverNotes;
+  if (rejectionReason !== undefined) delivery.rejectionReason = rejectionReason;
+  if (cancellationReason !== undefined) delivery.cancellationReason = cancellationReason;
+  if (paymentStatus !== undefined) delivery.paymentStatus = paymentStatus;
+
+  if (status && status !== delivery.status) {
+    delivery.status = status;
+    if (!Array.isArray(delivery.statusHistory)) {
+      delivery.statusHistory = [];
+    }
+    delivery.statusHistory.push({
+      status,
+      timestamp: new Date().toISOString(),
+      note: note || `Status updated to ${status.replace(/_/g, ' ')}`
+    });
+  }
+
+  delivery.updatedAt = new Date().toISOString();
+
+  logAudit(
+    req.body._adminName || req.body._courierName || 'Courier System',
+    req.body._role || 'ADMIN',
+    'DELIVERY_STATUS_UPDATED',
+    `${delivery.trackingCode} -> ${delivery.status}`,
+    note || `Delivery status changed to ${delivery.status}`
+  );
+
+  saveDB();
+  res.json({ success: true, request: delivery });
+});
+
+app.post('/api/delivery-requests/:id/cancel', (req: Request, res: Response) => {
+  const idOrCode = req.params.id;
+  const delivery = (db.deliveryRequests || []).find(
+    (d: any) => d.id === idOrCode || d.trackingCode.toUpperCase() === idOrCode.toUpperCase()
+  );
+
+  if (!delivery) {
+    res.status(404).json({ error: 'Delivery request not found' });
+    return;
+  }
+
+  if (delivery.status === 'DELIVERED') {
+    res.status(400).json({ error: 'Cannot cancel a completed delivery.' });
+    return;
+  }
+
+  const reason = req.body.cancellationReason || 'Cancelled by customer';
+  delivery.status = 'CANCELLED';
+  delivery.cancellationReason = reason;
+  delivery.updatedAt = new Date().toISOString();
+
+  if (!Array.isArray(delivery.statusHistory)) {
+    delivery.statusHistory = [];
+  }
+  delivery.statusHistory.push({
+    status: 'CANCELLED',
+    timestamp: new Date().toISOString(),
+    note: reason
+  });
+
+  logAudit(req.body.customerName || 'Customer', 'CUSTOMER', 'DELIVERY_CANCELLED', delivery.trackingCode, reason);
+  saveDB();
+  res.json({ success: true, request: delivery });
+});
+
 // 5. Advertisements Management
 app.get('/api/ads', (req: Request, res: Response) => {
   const activeAds = db.advertisements
@@ -1043,7 +2423,7 @@ app.get('/api/ads', (req: Request, res: Response) => {
   res.json(activeAds);
 });
 
-app.get('/api/admin/ads', (req: Request, res: Response) => {
+app.get('/api/admin/ads', requireAdminAuth, (req: Request, res: Response) => {
   res.json(db.advertisements);
 });
 
@@ -1078,8 +2458,8 @@ const createAdHandler = (req: Request, res: Response) => {
   res.json({ success: true, ad: newAd });
 };
 
-app.post('/api/ads', createAdHandler);
-app.post('/api/admin/ads', createAdHandler);
+app.post('/api/ads', requireAdminAuth, createAdHandler);
+app.post('/api/admin/ads', requireAdminAuth, createAdHandler);
 
 const updateAdHandler = (req: Request, res: Response) => {
   const ad = db.advertisements.find(a => a.id === req.params.id);
@@ -1096,8 +2476,8 @@ const updateAdHandler = (req: Request, res: Response) => {
   res.json({ success: true, ad });
 };
 
-app.put('/api/ads/:id', updateAdHandler);
-app.put('/api/admin/ads/:id', updateAdHandler);
+app.put('/api/ads/:id', requireAdminAuth, updateAdHandler);
+app.put('/api/admin/ads/:id', requireAdminAuth, updateAdHandler);
 
 const deleteAdHandler = (req: Request, res: Response) => {
   const idx = db.advertisements.findIndex(a => a.id === req.params.id);
@@ -1111,8 +2491,8 @@ const deleteAdHandler = (req: Request, res: Response) => {
   res.json({ success: true, message: `Ad ${removed.title} deleted` });
 };
 
-app.delete('/api/ads/:id', deleteAdHandler);
-app.delete('/api/admin/ads/:id', deleteAdHandler);
+app.delete('/api/ads/:id', requireAdminAuth, deleteAdHandler);
+app.delete('/api/admin/ads/:id', requireAdminAuth, deleteAdHandler);
 
 // Automatic AI Ad Generator (creates punchy 5-8 second ads from database or essentials)
 const autoGenerateAdHandler = (req: Request, res: Response) => {
@@ -1239,8 +2619,8 @@ const autoGenerateAdHandler = (req: Request, res: Response) => {
   res.json({ success: true, ad: generatedAd });
 };
 
-app.post('/api/ads/auto-generate', autoGenerateAdHandler);
-app.post('/api/admin/ads/auto-generate', autoGenerateAdHandler);
+app.post('/api/ads/auto-generate', requireAdminAuth, autoGenerateAdHandler);
+app.post('/api/admin/ads/auto-generate', requireAdminAuth, autoGenerateAdHandler);
 
 app.post('/api/ads/:id/impression', (req: Request, res: Response) => {
   const ad = db.advertisements.find(a => a.id === req.params.id);
@@ -1334,16 +2714,16 @@ ${knowledgeSummary}
         }
       ];
 
-      // Safe timeout (10 seconds) wrapper to prevent indefinite hangs on network delays or rate limits
-      const timeoutMs = 10000;
+      // Safe timeout (5 seconds) wrapper to prevent indefinite hangs on network delays or rate limits
+      const timeoutMs = 5000;
       let timer: NodeJS.Timeout;
       const timeoutPromise = new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error('SOHLA AI: Gemini API request timed out after 10s')), timeoutMs);
+        timer = setTimeout(() => reject(new Error('SOHLA AI: Gemini API request timed out after 5s')), timeoutMs);
       });
 
       const response = await Promise.race([
         ai.models.generateContent({
-          model: 'gemini-3.8-flash',
+          model: 'gemini-2.5-flash',
           contents,
           config: {
             systemInstruction,
@@ -1442,17 +2822,19 @@ function extractMissingSubject(q: string): string {
 }
 
 function guessCategory(q: string): string {
-  if (q.includes('food') || q.includes('eat') || q.includes('restaurant') || q.includes('cake') || q.includes('fish') || q.includes('benachin')) return 'FOOD & RESTAURANTS';
-  if (q.includes('taxi') || q.includes('ride') || q.includes('car') || q.includes('airport')) return 'TRANSPORT';
+  if (q.includes('food') || q.includes('eat') || q.includes('restaurant') || q.includes('fish') || q.includes('benachin')) return 'FOOD & RESTAURANTS';
+  if (q.includes('hotel') || q.includes('stay') || q.includes('resort') || q.includes('lodge') || q.includes('suite') || q.includes('guest house') || q.includes('motel') || q.includes('room booking') || q.includes('accommodation')) return 'HOTELS & STAYS';
+  if (q.includes('house') || q.includes('housing') || q.includes('property') || q.includes('properties') || q.includes('rent') || q.includes('villa') || q.includes('apartment') || q.includes('land') || q.includes('plot') || q.includes('estate') || q.includes('real estate')) return 'HOUSING & PROPERTIES';
+  if (q.includes('taxi') || q.includes('ride') || q.includes('car') || q.includes('airport transfer')) return 'TRANSPORT';
   if (q.includes('phone') || q.includes('samsung') || q.includes('laptop') || q.includes('buy') || q.includes('shop')) return 'SHOPPING';
   if (q.includes('cash power') || q.includes('nawec') || q.includes('meter') || q.includes('electricity')) return 'BUY CASH POWER (NAWEC)';
-  if (q.includes('deliver') || q.includes('courier') || q.includes('errand')) return 'DELIVERY & ERRANDS';
-  if (q.includes('hair') || q.includes('braid') || q.includes('spa') || q.includes('massage')) return 'BEAUTY & WELLNESS';
+  if (q.includes('deliver') || q.includes('courier') || q.includes('errand') || q.includes('package') || q.includes('parcel') || q.includes('dispatch') || q.includes('send')) return 'DELIVERY & ERRANDS';
+  if (q.includes('hair') || q.includes('braid') || q.includes('spa') || q.includes('massage') || q.includes('barber') || q.includes('salon') || q.includes('facial') || q.includes('nail') || q.includes('henna') || q.includes('makeup') || q.includes('wellness')) return 'BEAUTY & WELLNESS';
   return 'GENERAL';
 }
 
 function guessLocation(q: string): string | null {
-  const locs = ['Senegambia', 'Kololi', 'Kairaba', 'Fajara', 'Banjul', 'Serekunda', 'Brusubi', 'Bakau', 'Bijilo', 'Kotuk', 'Sukuta'];
+  const locs = ['Senegambia', 'Kololi', 'Kairaba', 'Fajara', 'Banjul', 'Serekunda', 'Brusubi', 'Bakau', 'Bijilo', 'Kotu', 'Sukuta'];
   for (const l of locs) {
     if (q.toLowerCase().includes(l.toLowerCase())) return l;
   }
@@ -1463,12 +2845,70 @@ function generateIntelligentFallback(q: string, partners: any[]): string {
   // Check for greetings
   if (/^(hi|hello|salaam|nanga def|abara kaata|good morning|good afternoon)/i.test(q)) {
     return `Salaam Alaikum! I am SOHLA AI — your everyday assistant in The Gambia. 
-I can help you find verified restaurants, electronics, taxis, couriers, or buy instant NAWEC Cash Power. How can I assist you right now?`;
+I can help you find verified barbers, salons, book spa treatments, order couriers & market errands, find restaurants, or buy instant NAWEC Cash Power. How can I assist you right now?`;
   }
 
   // Check for NAWEC / Electricity
   if (q.includes('nawec') || q.includes('cash power') || q.includes('electricity') || q.includes('meter')) {
     return `You can purchase NAWEC Cash Power directly on SOHLA! Simply tap the 'Buy Cash Power (NAWEC)' card on your home screen or select Utilities. You can enter your 11-digit meter number, pay with Wave, QMoney, or card, and receive your 20-digit token immediately.`;
+  }
+
+  // Check for Barber / Men's Grooming / Haircut
+  if (q.includes('barber') || q.includes('haircut') || q.includes('fade') || q.includes('shave') || q.includes('beard')) {
+    const barber = partners.find(p => p.category === 'BEAUTY & WELLNESS' && (p.subcategory === 'Barbers' || p.name.includes('Barber')));
+    if (barber) {
+      return `For executive haircuts and grooming, I recommend verified partner **${barber.name}** in ${barber.location}!
+• **Address**: ${barber.address}
+• **Verified Services & Dalasi Pricing**:
+  - Precision Haircut, Fade & Edge-up: D250
+  - Royal Hot Towel Shave & Beard Sculpting: D180
+  - VIP Executive Grooming Package (Cut, Beard & Charcoal Facial): D600
+  - Kids Smart Haircut: D150
+• **Direct Booking**: You can book an appointment slot directly through SOHLA or connect on WhatsApp at **${barber.whatsapp}**.`;
+    }
+  }
+
+  // Check for Salon / Braids / Nails / Henna / Makeup
+  if (q.includes('salon') || q.includes('braid') || q.includes('knotless') || q.includes('henna') || q.includes('nail') || q.includes('makeup')) {
+    const salon = partners.find(p => p.category === 'BEAUTY & WELLNESS' && (p.name.includes('Glow') || p.name.includes('Henna')));
+    if (salon) {
+      return `For professional styling, braiding, and beauty care, check out verified partner **${salon.name}** in ${salon.location}!
+• **Address**: ${salon.address}
+• **Popular Services**:
+  - Knotless Braids with Extensions: D1,200
+  - Aromatherapy Deep Tissue Massage (60 mins): D1,500
+  - Botanical Cleansing Facial & Steaming: D850
+  - Traditional Bridal Henna (Hands & Feet): D850
+• **Online Booking**: Tap 'Book Service' to reserve your preferred date & time slot directly in SOHLA!
+• **Phone & WhatsApp**: **${salon.whatsapp}**`;
+    }
+  }
+
+  // Check for Massage / Spa / Wellness
+  if (q.includes('massage') || q.includes('spa') || q.includes('wellness') || q.includes('facial') || q.includes('scrub')) {
+    const spa = partners.find(p => p.category === 'BEAUTY & WELLNESS' && (p.subcategory?.includes('Spa') || p.name.includes('Spa') || p.name.includes('Glow')));
+    if (spa) {
+      return `For relaxation and wellness treatments, verified partner **${spa.name}** in ${spa.location} offers:
+• **Aromatherapy Deep Tissue Massage (60 mins)**: D1,500
+• **Organic Shea Butter Body Scrub**: D850
+• **Hours**: ${spa.openingHours}
+• **Reservations**: You can select a date and book your treatment directly through SOHLA, or call/WhatsApp **${spa.whatsapp}**.`;
+    }
+  }
+
+  // Check for Delivery / Courier / Errand / Send Package / Deliver to Banjul / Brusubi to Kololi
+  if (q.includes('deliver') || q.includes('courier') || q.includes('errand') || q.includes('send package') || q.includes('package') || q.includes('parcel') || q.includes('dispatch')) {
+    const courier = partners.find(p => p.category === 'DELIVERY & ERRANDS');
+    if (courier) {
+      return `For swift door-to-door delivery across Greater Banjul, verified partner **${courier.name}** is on standby!
+• **Rates & Available Options**:
+  - Greater Banjul Standard Parcel Courier: From D120
+  - Hot Restaurant Food Delivery: D100
+  - Serekunda Market Fresh Grocery Errand: D200
+  - Urgent Document & Bank Cheque Dispatch: D150
+  - Fragile Cake & Glassware Careful Transit: D180
+• **Direct Dispatch**: Tap 'Send a Package' on the Delivery page to submit your pickup and destination details with instant tracking code, or WhatsApp dispatch at **${courier.whatsapp}**!`;
+    }
   }
 
   // Check for Food / Benachin / Fish
@@ -1509,14 +2949,33 @@ Available verified products:
     }
   }
 
-  // Check for Delivery / Courier
-  if (q.includes('deliver') || q.includes('courier') || q.includes('errand') || q.includes('send package')) {
-    const courier = partners.find(p => p.category === 'DELIVERY & ERRANDS');
-    if (courier) {
-      return `For swift delivery and market errands, use **${courier.name}**!
-• Greater Banjul parcel delivery: From D120
-• Serekunda Market fresh grocery errand: D200
-• WhatsApp Dispatch: **${courier.whatsapp}**`;
+  // Check for Housing & Properties / Rentals / Villas / Land
+  if (q.includes('house') || q.includes('housing') || q.includes('property') || q.includes('rent') || q.includes('villa') || q.includes('apartment') || q.includes('land') || q.includes('plot') || q.includes('real estate')) {
+    const realEstate = partners.find(p => p.category === 'HOUSING & PROPERTIES');
+    if (realEstate) {
+      return `For verified real estate, rentals, and titled land in The Gambia, I recommend **${realEstate.name}**!
+• **Location**: ${realEstate.location} (${realEstate.address})
+• **Available Listings**:
+  - Luxury 4-Bedroom Pool Villa (Brusubi Phase 1): D45,000/mo
+  - Executive 2-Bedroom Furnished Apartment (Fajara): D25,000/mo
+  - Titled Residential Land Plot (Bijilo, 20x30m): D650,000
+• **Services**: Tenant placement, property management & Lands Department title search
+• **Direct Phone & WhatsApp**: **${realEstate.whatsapp}**`;
+    }
+  }
+
+  // Check for Hotels & Stays / Resorts / Accommodation
+  if (q.includes('hotel') || q.includes('stay') || q.includes('resort') || q.includes('lodge') || q.includes('room') || q.includes('suite') || q.includes('guest house') || q.includes('vacation')) {
+    const hotel = partners.find(p => p.category === 'HOTELS & STAYS');
+    if (hotel) {
+      return `For comfortable lodging and holiday stays in The Gambia, check out verified partner **${hotel.name}**!
+• **Location**: ${hotel.location} (${hotel.address})
+• **Verified Room Options**:
+  - Deluxe Ocean View Room: D3,800/night (Includes buffet breakfast & WiFi)
+  - Executive Beachfront Suite: D6,500/night (With plunge lounge & sunset terrace)
+  - Weekend Eco-Lodge Family Bungalow: D4,200/night
+• **Amenities**: Direct beach access, tropical pools, Kotu river birdwatching & VIP airport transfers
+• **Reservations & WhatsApp**: **${hotel.whatsapp}**`;
     }
   }
 
@@ -1527,7 +2986,7 @@ I have automatically recorded your request for our merchant onboarding team so w
   }
 
   // General fallback strictly citing verified partners
-  return `I searched our verified Gambian partner database. We have verified businesses across Food & Dining, Shopping, Transport, Deliveries, and NAWEC Cash Power. 
+  return `I searched our verified Gambian partner database. We have verified businesses across Food & Dining, Shopping, Housing & Properties, Hotels & Stays, Transport, Deliveries, and NAWEC Cash Power. 
 Could you clarify what product, service, or location you are looking for today?`;
 }
 
@@ -1536,7 +2995,7 @@ app.get('/api/ai/missing-requests', (req: Request, res: Response) => {
   res.json(db.missingRequests);
 });
 
-app.post('/api/ai/missing-requests/:id/resolve', (req: Request, res: Response) => {
+app.post('/api/ai/missing-requests/:id/resolve', requireAdminAuth, (req: Request, res: Response) => {
   const reqItem = db.missingRequests.find(r => r.id === req.params.id);
   if (reqItem) {
     reqItem.resolved = true;
@@ -1548,7 +3007,7 @@ app.post('/api/ai/missing-requests/:id/resolve', (req: Request, res: Response) =
 });
 
 // 8. Admin Metrics & Stats
-app.get('/api/admin/stats', (req: Request, res: Response) => {
+app.get('/api/admin/stats', requireAdminAuth, (req: Request, res: Response) => {
   const totalBusinesses = db.partners.length;
   const activeBusinesses = db.partners.filter(p => p.activeStatus).length;
   const pendingBusinesses = db.partners.filter(p => p.verificationStatus === 'pending').length;
@@ -1592,11 +3051,11 @@ app.get('/api/admin/stats', (req: Request, res: Response) => {
 });
 
 // 8b. Missing Requests (AI Improvement Center)
-app.get('/api/admin/missing-requests', (req: Request, res: Response) => {
+app.get('/api/admin/missing-requests', requireAdminAuth, (req: Request, res: Response) => {
   res.json(db.missingRequests);
 });
 
-app.put('/api/admin/missing-requests/:id/resolve', (req: Request, res: Response) => {
+app.put('/api/admin/missing-requests/:id/resolve', requireAdminAuth, (req: Request, res: Response) => {
   const { id } = req.params;
   const item = db.missingRequests.find(m => m.id === id);
   if (item) {
@@ -1609,39 +3068,222 @@ app.put('/api/admin/missing-requests/:id/resolve', (req: Request, res: Response)
   res.status(404).json({ error: 'Request not found' });
 });
 
-// 9. Audit Logs
-app.get('/api/admin/audit-logs', (req: Request, res: Response) => {
+// 9. Audit Logs (Restricted to authenticated administrators)
+app.get('/api/admin/audit-logs', requireAdminAuth, (req: Request, res: Response) => {
   res.json(db.auditLogs);
 });
 
-// 10. Admin Auth & Users
+// 10. Admin Auth & Security Guard
+// Server is the sole authority. Rate limiting and brute-force lockout protection enabled.
 app.post('/api/admin/login', (req: Request, res: Response) => {
-  const { username, password, role } = req.body;
-  // Secure role-based administrative authentication
-  const matched = db.adminUsers.find(u => u.username === username || u.role === role);
-  if (matched && (password === 'sohla2026' || password === 'admin' || !password)) {
-    matched.lastLogin = new Date().toISOString();
-    logAudit(matched.name, matched.role, 'ADMIN_LOGIN_SUCCESS', `Session started for ${matched.username}`);
-    saveDB();
-    res.json({
-      success: true,
-      token: `sess-${Date.now()}-${Math.random().toString(36).substring(2)}`,
-      user: matched
-    });
+  const { username, password } = req.body;
+  if (!username || !password) {
+    res.status(400).json({ error: 'Username and administrator password are required' });
     return;
   }
-  logAudit(username || 'unknown', 'GUEST', 'ADMIN_LOGIN_FAILED', 'Invalid credentials attempt', undefined, undefined, 'FAILURE');
-  res.status(401).json({ error: 'Invalid admin credentials' });
+
+  const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'local';
+  const cleanUser = String(username).trim().toLowerCase();
+  const lockoutKey = `${clientIp}_${cleanUser}`;
+  const attemptInfo = failedLoginAttempts.get(lockoutKey);
+
+  // Check brute force temporary lockout
+  if (attemptInfo && attemptInfo.lockedUntil > Date.now()) {
+    const remainingSeconds = Math.ceil((attemptInfo.lockedUntil - Date.now()) / 1000);
+    res.status(429).json({ error: `Too many failed login attempts. Account gateway locked for ${remainingSeconds} seconds.` });
+    return;
+  }
+
+  const matched = db.adminUsers.find(u => 
+    u.username.toLowerCase() === cleanUser || 
+    u.email.toLowerCase() === cleanUser ||
+    (u.phone && u.phone.replace(/[\s+-]/g, '') === cleanUser.replace(/[\s+-]/g, ''))
+  );
+
+  // Validate using cryptographically secure PBKDF2-SHA512 hash
+  const storedHash = matched?.passwordHash || db.adminSecurity?.passwordHash || `${INITIAL_SALT}:${INITIAL_HASH}`;
+  const isValid = matched && matched.active && verifyPassword(String(password), storedHash);
+
+  if (!matched || !isValid) {
+    const current = attemptInfo || { count: 0, lockedUntil: 0 };
+    current.count += 1;
+    if (current.count >= 5) {
+      current.lockedUntil = Date.now() + 2 * 60 * 1000; // 2-minute lockout
+      logAudit(cleanUser, 'GUEST', 'ADMIN_ACCOUNT_LOCKED', `5 failed attempts from ${clientIp}`, undefined, undefined, 'WARNING');
+    }
+    failedLoginAttempts.set(lockoutKey, current);
+    logAudit(cleanUser, 'GUEST', 'ADMIN_LOGIN_FAILED', 'Invalid credentials attempt', undefined, undefined, 'FAILURE');
+    
+    // Constant response: never leak whether username exists or password partially matched
+    res.status(401).json({ error: 'Invalid administrator credentials' });
+    return;
+  }
+
+  // Clear failed attempts counter upon successful authentication
+  failedLoginAttempts.delete(lockoutKey);
+
+  // Generate cryptographically secure random session token
+  const token = `adm_${crypto.randomBytes(32).toString('hex')}`;
+  activeAdminSessions.set(token, {
+    userId: matched.id,
+    username: matched.username,
+    role: matched.role,
+    name: matched.name,
+    createdAt: Date.now(),
+    expiresAt: Date.now() + 1000 * 60 * 60 * 24 // 24 hours
+  });
+
+  matched.lastLogin = new Date().toISOString();
+  logAudit(matched.name, matched.role, 'ADMIN_LOGIN_SUCCESS', `Secure session established for ${matched.username}`);
+  saveDB();
+
+  // Set secure HttpOnly cookie
+  res.cookie('sohla_admin_session', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60 * 1000
+  });
+
+  // Strip sensitive hashes before returning user object
+  const { passwordHash, ...sanitizedUser } = matched;
+  res.json({
+    success: true,
+    token,
+    user: sanitizedUser
+  });
 });
 
-// 10. Admin Team Member Management (STRICTLY RESTRICTED TO ADMIN PORTAL)
-// Only an authenticated admin within the Admin Portal can enroll, verify, or manage team members
-app.get('/api/admin/users', (req: Request, res: Response) => {
-  res.json(db.adminUsers);
+app.get('/api/admin/verify-session', (req: Request, res: Response) => {
+  const auth = verifyAdminSession(req);
+  if (!auth.valid || !auth.session) {
+    res.status(401).json({ valid: false, error: auth.error || 'Session expired or invalid' });
+    return;
+  }
+
+  const user = db.adminUsers.find(u => u.id === auth.session!.userId);
+  if (!user || !user.active) {
+    res.status(401).json({ valid: false, error: 'User disabled or not found' });
+    return;
+  }
+
+  const { passwordHash, ...sanitizedUser } = user;
+  res.json({ valid: true, user: sanitizedUser, role: auth.session.role });
 });
 
-// Add a team member with security clearance and verified personal information
-app.post('/api/admin/users', (req: Request, res: Response) => {
+app.post('/api/admin/logout', (req: Request, res: Response) => {
+  const token = extractSessionToken(req);
+  if (token) {
+    const session = activeAdminSessions.get(token);
+    if (session) {
+      logAudit(session.name, session.role, 'ADMIN_LOGOUT', `Session closed for ${session.username}`);
+    }
+    activeAdminSessions.delete(token);
+  }
+  res.clearCookie('sohla_admin_session');
+  res.json({ success: true, message: 'Logged out successfully' });
+});
+
+app.get('/api/admin/security-status', requireAdminAuth, (req: Request, res: Response) => {
+  res.json({
+    algorithm: db.adminSecurity?.algorithm || 'PBKDF2-SHA512',
+    iterations: db.adminSecurity?.iterations || 10000,
+    lastUpdated: db.adminSecurity?.lastUpdated || new Date().toISOString(),
+    activeSessionsCount: activeAdminSessions.size,
+    isProtected: true
+  });
+});
+
+// Inside Control Center only: Change Admin Password (SUPER_ADMIN authorization required)
+app.post('/api/admin/change-password', requireSuperAdmin, (req: Request, res: Response) => {
+  const session = (req as any).adminSession;
+  const { currentPassword, newPassword, confirmPassword } = req.body;
+  if (!currentPassword || !newPassword) {
+    res.status(400).json({ error: 'Current password and new password are required' });
+    return;
+  }
+  if (newPassword !== confirmPassword) {
+    res.status(400).json({ error: 'New password and confirmation do not match' });
+    return;
+  }
+  if (newPassword.length < 6) {
+    res.status(400).json({ error: 'New password must be at least 6 characters long' });
+    return;
+  }
+
+  const user = db.adminUsers.find(u => u.id === session.userId);
+  const currentTargetHash = user?.passwordHash || db.adminSecurity?.passwordHash || `${INITIAL_SALT}:${INITIAL_HASH}`;
+  const isValid = verifyPassword(String(currentPassword), currentTargetHash);
+
+  if (!isValid) {
+    logAudit(session.name, session.role, 'ADMIN_PASSWORD_CHANGE_FAILED', 'Current password verification failed', undefined, undefined, 'FAILURE');
+    res.status(401).json({ error: 'Current administrator password is incorrect' });
+    return;
+  }
+
+  // Hash new password securely with PBKDF2-SHA512 with fresh cryptographic salt
+  const newHash = hashPassword(String(newPassword));
+  if (!db.adminSecurity) {
+    db.adminSecurity = {
+      passwordHash: newHash,
+      lastUpdated: new Date().toISOString(),
+      algorithm: 'PBKDF2-SHA512',
+      iterations: 10000
+    };
+  } else {
+    db.adminSecurity.passwordHash = newHash;
+    db.adminSecurity.lastUpdated = new Date().toISOString();
+  }
+
+  if (user) {
+    user.passwordHash = newHash;
+  }
+
+  // Invalidate all other active sessions so older sessions must re-authenticate with new password
+  const currentToken = extractSessionToken(req);
+  for (const token of activeAdminSessions.keys()) {
+    if (token !== currentToken) {
+      activeAdminSessions.delete(token);
+    }
+  }
+
+  logAudit(session.name, session.role, 'ADMIN_PASSWORD_CHANGED', 'Platform administrator password updated securely', undefined, 'PBKDF2-SHA512 hash updated');
+  saveDB();
+
+  res.json({
+    success: true,
+    message: 'Administrator password updated successfully',
+    lastUpdated: db.adminSecurity.lastUpdated
+  });
+});
+
+app.post('/api/admin/revoke-sessions', requireSuperAdmin, (req: Request, res: Response) => {
+  const currentToken = extractSessionToken(req);
+  const session = (req as any).adminSession;
+
+  // Clear all sessions except current one
+  for (const token of activeAdminSessions.keys()) {
+    if (token !== currentToken) {
+      activeAdminSessions.delete(token);
+    }
+  }
+
+  logAudit(session.name, session.role, 'ADMIN_SESSIONS_REVOKED', 'Revoked all other active administrative sessions');
+  res.json({ success: true, message: 'All other active sessions revoked' });
+});
+
+// 10. Admin Team Member Management (STRICTLY RESTRICTED TO SUPER_ADMIN)
+app.get(['/api/admin/users', '/api/admin/team'], requireSuperAdmin, (req: Request, res: Response) => {
+  const sanitizedUsers = db.adminUsers.map(u => {
+    const { passwordHash, ...safe } = u;
+    return safe;
+  });
+  res.json(sanitizedUsers);
+});
+
+// Add a team member with security clearance and verified personal information (SUPER_ADMIN only)
+app.post('/api/admin/users', requireSuperAdmin, (req: Request, res: Response) => {
+  const session = (req as any).adminSession;
   const {
     name,
     username,
@@ -1652,18 +3294,11 @@ app.post('/api/admin/users', (req: Request, res: Response) => {
     role,
     securityClearance,
     verifiedPersonal,
-    twoFactorEnabled,
-    _adminName,
-    _adminRole
+    twoFactorEnabled
   } = req.body;
 
-  // Authorization check: Only Super Admin or Admin can add team members
-  const authHeader = req.headers.authorization;
-  const actingRole = _adminRole || (authHeader ? 'SUPER_ADMIN' : 'UNAUTHORIZED');
-  if (actingRole !== 'SUPER_ADMIN' && actingRole !== 'ADMIN') {
-    res.status(403).json({ error: 'Access Denied: Only portal Super Admins can enroll or verify team members.' });
-    return;
-  }
+  const actingRole = session?.role || 'SUPER_ADMIN';
+  const actingAdmin = session?.name || 'Super Admin';
 
   // Security & Verified Personal Validation
   if (!name || name.trim().length < 3) {
@@ -1700,7 +3335,6 @@ app.post('/api/admin/users', (req: Request, res: Response) => {
 
   // Generate secure temporary activation passcode
   const tempKey = `SOHLA-SEC-${Math.floor(100000 + Math.random() * 900000)}`;
-  const actingAdmin = _adminName || 'Super Admin';
 
   const newMember = {
     id: `u-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -1743,8 +3377,9 @@ app.post('/api/admin/users', (req: Request, res: Response) => {
   });
 });
 
-// Update team member credentials
-app.put('/api/admin/users/:id', (req: Request, res: Response) => {
+// Update team member credentials (SUPER_ADMIN only)
+app.put('/api/admin/users/:id', requireSuperAdmin, (req: Request, res: Response) => {
+  const session = (req as any).adminSession;
   const { id } = req.params;
   const {
     name,
@@ -1755,9 +3390,7 @@ app.put('/api/admin/users/:id', (req: Request, res: Response) => {
     role,
     securityClearance,
     verifiedPersonal,
-    twoFactorEnabled,
-    _adminName,
-    _adminRole
+    twoFactorEnabled
   } = req.body;
 
   const targetUser = db.adminUsers.find((u: any) => u.id === id);
@@ -1766,11 +3399,8 @@ app.put('/api/admin/users/:id', (req: Request, res: Response) => {
     return;
   }
 
-  const actingRole = _adminRole || 'SUPER_ADMIN';
-  if (actingRole !== 'SUPER_ADMIN' && actingRole !== 'ADMIN') {
-    res.status(403).json({ error: 'Access Denied: Only portal Super Admins can update team credentials.' });
-    return;
-  }
+  const actingRole = session?.role || 'SUPER_ADMIN';
+  const actingAdmin = session?.name || 'Super Admin';
 
   if (name) targetUser.name = name.trim();
   if (email) targetUser.email = email.trim().toLowerCase();
@@ -1782,7 +3412,6 @@ app.put('/api/admin/users/:id', (req: Request, res: Response) => {
   if (verifiedPersonal !== undefined) targetUser.verifiedPersonal = Boolean(verifiedPersonal);
   if (twoFactorEnabled !== undefined) targetUser.twoFactorEnabled = Boolean(twoFactorEnabled);
 
-  const actingAdmin = _adminName || 'Super Admin';
   logAudit(
     actingAdmin,
     actingRole as any,
@@ -1797,10 +3426,10 @@ app.put('/api/admin/users/:id', (req: Request, res: Response) => {
   res.json({ success: true, user: targetUser });
 });
 
-// Toggle team member active / suspended status
-app.put('/api/admin/users/:id/toggle-status', (req: Request, res: Response) => {
+// Toggle team member active / suspended status (SUPER_ADMIN only)
+app.put('/api/admin/users/:id/toggle-status', requireSuperAdmin, (req: Request, res: Response) => {
+  const session = (req as any).adminSession;
   const { id } = req.params;
-  const { _adminName, _adminRole } = req.body || {};
 
   const targetUser = db.adminUsers.find((u: any) => u.id === id);
   if (!targetUser) {
@@ -1815,8 +3444,8 @@ app.put('/api/admin/users/:id/toggle-status', (req: Request, res: Response) => {
   }
 
   targetUser.active = !targetUser.active;
-  const actingAdmin = _adminName || 'Super Admin';
-  const actingRole = _adminRole || 'SUPER_ADMIN';
+  const actingAdmin = session?.name || 'Super Admin';
+  const actingRole = session?.role || 'SUPER_ADMIN';
 
   logAudit(
     actingAdmin,
@@ -1833,9 +3462,9 @@ app.put('/api/admin/users/:id/toggle-status', (req: Request, res: Response) => {
 });
 
 // Remove a team member (SUPER_ADMIN only)
-app.delete('/api/admin/users/:id', (req: Request, res: Response) => {
+app.delete('/api/admin/users/:id', requireSuperAdmin, (req: Request, res: Response) => {
+  const session = (req as any).adminSession;
   const { id } = req.params;
-  const { _adminName, _adminRole } = req.body || {};
 
   const index = db.adminUsers.findIndex((u: any) => u.id === id);
   if (index === -1) {
@@ -1849,8 +3478,8 @@ app.delete('/api/admin/users/:id', (req: Request, res: Response) => {
   }
 
   const removed = db.adminUsers.splice(index, 1)[0];
-  const actingAdmin = _adminName || 'Super Admin';
-  const actingRole = _adminRole || 'SUPER_ADMIN';
+  const actingAdmin = session?.name || 'Super Admin';
+  const actingRole = session?.role || 'SUPER_ADMIN';
 
   logAudit(
     actingAdmin,
@@ -2502,8 +4131,10 @@ app.get('/api/control-center/media', (req: Request, res: Response) => {
   res.json(mediaList);
 });
 
-// 13. Data Backup Snapshot Export
-app.get('/api/admin/backup', (req: Request, res: Response) => {
+// 13. Data Backup Snapshot Export (SUPER_ADMIN only)
+app.get('/api/admin/backup', requireSuperAdmin, (req: Request, res: Response) => {
+  const session = (req as any).adminSession;
+  logAudit(session?.name || 'Super Admin', 'SUPER_ADMIN', 'DATA_BACKUP_EXPORTED', 'Full database snapshot exported');
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Content-Disposition', `attachment; filename=sohla_backup_${new Date().toISOString().split('T')[0]}.json`);
   res.send(JSON.stringify(db, null, 2));

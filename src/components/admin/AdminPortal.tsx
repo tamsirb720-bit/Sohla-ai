@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   LayoutDashboard,
   Store,
@@ -31,7 +31,11 @@ import {
   Wand2,
   Play,
   Pause,
-  Eye
+  Eye,
+  Loader2,
+  X,
+  Link as LinkIcon,
+  Star
 } from 'lucide-react';
 import {
   AdminUser,
@@ -41,11 +45,14 @@ import {
   Advertisement,
   AuditLogEntry,
   MissingAIRequest,
-  CategoryInfo
+  CategoryInfo,
+  OurWorkItem,
+  HEALTHCARE_SERVICES_LIST
 } from '../../types';
 import { SohlaLogo } from '../common/SohlaLogo';
 import { TeamManagementTab } from './TeamManagementTab';
 import { Smartphone, Monitor } from 'lucide-react';
+import { compressImageFile, compressMultipleImageFiles, readVideoFile } from '../../utils/mediaUtils';
 
 interface AdminPortalProps {
   currentUser: AdminUser;
@@ -90,8 +97,29 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [successBanner, setSuccessBanner] = useState('');
 
-  // Partner Form State
+  // Partner Form State & Media Uploads
   const [isAddingPartner, setIsAddingPartner] = useState(false);
+  const [editingPartnerId, setEditingPartnerId] = useState<string | null>(null);
+  const [partnerFormTab, setPartnerFormTab] = useState<'general' | 'media'>('general');
+  const [isSavingPartner, setIsSavingPartner] = useState(false);
+  const [partnerError, setPartnerError] = useState('');
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
+  const [isUploadingWorkImage, setIsUploadingWorkImage] = useState(false);
+  const [newPhotoUrl, setNewPhotoUrl] = useState('');
+  const [isAddingWorkItem, setIsAddingWorkItem] = useState(false);
+  const [newWorkItem, setNewWorkItem] = useState<Partial<OurWorkItem>>({
+    title: '',
+    description: '',
+    image: '',
+    category: '',
+    completedDate: new Date().toISOString().split('T')[0]
+  });
+
+  const partnerVideoInputRef = useRef<HTMLInputElement>(null);
+  const partnerGalleryInputRef = useRef<HTMLInputElement>(null);
+  const partnerWorkImageInputRef = useRef<HTMLInputElement>(null);
+
   const [newPartner, setNewPartner] = useState<Partial<BusinessPartner>>({
     name: '',
     category: 'RESTAURANTS',
@@ -108,6 +136,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     deliveryFee: 50,
     estimatedDeliveryTime: '30-45 mins',
     coverImage: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
+    photos: [],
+    videoUrl: '',
+    ourWork: [],
     products: []
   });
 
@@ -123,6 +154,24 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     stock: 25,
     category: 'RESTAURANTS',
     image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80'
+  });
+
+  // Service Catalog Sub-Tab State
+  const [catalogSubTab, setCatalogSubTab] = useState<'products' | 'services'>('products');
+  const [isAddingService, setIsAddingService] = useState(false);
+  const [selectedPartnerForService, setSelectedPartnerForService] = useState<string>('');
+  const [newServiceItem, setNewServiceItem] = useState({
+    name: HEALTHCARE_SERVICES_LIST[0] as string,
+    customName: '',
+    category: 'BEAUTY & WELLNESS',
+    subcategory: 'Healthcare & Nursing',
+    price: 500,
+    pricingType: 'Per Visit',
+    durationMinutes: 60,
+    description: '',
+    serviceArea: 'Greater Banjul Area',
+    credentialsInfo: 'Registered Nurse',
+    verificationStatus: 'verified' as 'verified' | 'unverified' | 'pending'
   });
 
   // Ad Form State
@@ -185,36 +234,261 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     setTimeout(() => setSuccessBanner(''), 3500);
   };
 
-  // Add Partner Handler
+  // Open Edit Partner Drawer
+  const handleStartEditPartner = (partner: BusinessPartner) => {
+    setEditingPartnerId(partner.id);
+    setNewPartner({
+      name: partner.name || '',
+      category: partner.category || 'SERVICES',
+      subcategory: partner.subcategory || '',
+      description: partner.description || '',
+      phone: partner.phone || '+220 7',
+      whatsapp: partner.whatsapp || partner.phone || '+220 7',
+      location: partner.location || 'Senegambia Strip',
+      address: partner.address || '',
+      openingHours: partner.openingHours || '09:00 AM - 08:00 PM',
+      verified: partner.verified !== false,
+      active: partner.active !== false,
+      deliveryAvailable: Boolean(partner.deliveryAvailable),
+      deliveryFee: partner.deliveryFee || 0,
+      estimatedDeliveryTime: partner.estimatedDeliveryTime || '30-45 mins',
+      coverImage: partner.coverImage || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
+      photos: Array.isArray(partner.photos) ? [...partner.photos] : [],
+      videoUrl: partner.videoUrl || '',
+      ourWork: Array.isArray(partner.ourWork) ? [...partner.ourWork] : [],
+      products: Array.isArray(partner.products) ? [...partner.products] : []
+    });
+    setPartnerFormTab('general');
+    setPartnerError('');
+    setIsAddingPartner(true);
+  };
+
+  const handleResetPartnerForm = () => {
+    setIsAddingPartner(false);
+    setEditingPartnerId(null);
+    setPartnerError('');
+    setPartnerFormTab('general');
+    setNewPhotoUrl('');
+    setIsAddingWorkItem(false);
+    setNewPartner({
+      name: '',
+      category: 'RESTAURANTS',
+      subcategory: 'Gambian Cuisine',
+      description: '',
+      phone: '+220 7',
+      whatsapp: '+220 7',
+      location: 'Senegambia Strip',
+      address: 'Senegambia, Kololi',
+      openingHours: '10:00 AM - 11:00 PM',
+      verified: true,
+      active: true,
+      deliveryAvailable: true,
+      deliveryFee: 50,
+      estimatedDeliveryTime: '30-45 mins',
+      coverImage: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
+      photos: [],
+      videoUrl: '',
+      ourWork: [],
+      products: []
+    });
+  };
+
+  // Direct Device Video Upload
+  const handlePartnerVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingVideo(true);
+    setPartnerError('');
+    try {
+      const result = await readVideoFile(file, 30 * 1024 * 1024); // max 30MB
+      setNewPartner(prev => ({ ...prev, videoUrl: result.dataUrl }));
+      showToast(`🎬 Video attached (${Math.round(result.sizeKb)} KB)`);
+    } catch (err: any) {
+      console.error('Video upload failed:', err);
+      const msg = err?.message || 'Failed to upload video from device';
+      setPartnerError(msg);
+      showToast(`⚠️ ${msg}`);
+    } finally {
+      setIsUploadingVideo(false);
+      if (partnerVideoInputRef.current) partnerVideoInputRef.current.value = '';
+    }
+  };
+
+  // Direct Device Gallery Photos Upload
+  const handlePartnerGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIsUploadingPhotos(true);
+    setPartnerError('');
+    try {
+      const compressedUrls = await compressMultipleImageFiles(files, { maxWidth: 1600, quality: 0.82 });
+      setNewPartner(prev => ({
+        ...prev,
+        photos: [...(prev.photos || []), ...compressedUrls]
+      }));
+      showToast(`📸 ${compressedUrls.length} photo(s) added to gallery`);
+    } catch (err: any) {
+      console.error('Gallery photo upload failed:', err);
+      const msg = err?.message || 'Failed to upload photos';
+      setPartnerError(msg);
+      showToast(`⚠️ ${msg}`);
+    } finally {
+      setIsUploadingPhotos(false);
+      if (partnerGalleryInputRef.current) partnerGalleryInputRef.current.value = '';
+    }
+  };
+
+  const handleAddPartnerPhotoUrl = () => {
+    const url = newPhotoUrl.trim();
+    if (!url) return;
+    setNewPartner(prev => ({
+      ...prev,
+      photos: [...(prev.photos || []), url]
+    }));
+    setNewPhotoUrl('');
+    showToast('Photo URL added to gallery');
+  };
+
+  const handleRemovePartnerPhoto = (index: number) => {
+    setNewPartner(prev => ({
+      ...prev,
+      photos: (prev.photos || []).filter((_, idx) => idx !== index)
+    }));
+  };
+
+  // Work Item Image Upload
+  const handleWorkItemImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingWorkImage(true);
+    try {
+      const dataUrl = await compressImageFile(file, { maxWidth: 1200, quality: 0.8 });
+      setNewWorkItem(prev => ({ ...prev, image: dataUrl }));
+      showToast('Project image attached');
+    } catch (err: any) {
+      console.error('Work image upload failed:', err);
+      showToast('⚠️ Failed to process work project image');
+    } finally {
+      setIsUploadingWorkImage(false);
+      if (partnerWorkImageInputRef.current) partnerWorkImageInputRef.current.value = '';
+    }
+  };
+
+  const handleSaveWorkItem = () => {
+    if (!newWorkItem.title?.trim() || !newWorkItem.image) {
+      showToast('⚠️ Please provide both a title and an image for the project');
+      return;
+    }
+    const item: OurWorkItem = {
+      id: `work-${Date.now()}`,
+      title: newWorkItem.title.trim(),
+      description: newWorkItem.description?.trim() || '',
+      image: newWorkItem.image,
+      category: newWorkItem.category?.trim() || newPartner.category || 'Portfolio',
+      completedDate: newWorkItem.completedDate || new Date().toISOString().split('T')[0]
+    };
+    setNewPartner(prev => ({
+      ...prev,
+      ourWork: [...(prev.ourWork || []), item]
+    }));
+    setNewWorkItem({
+      title: '',
+      description: '',
+      image: '',
+      category: '',
+      completedDate: new Date().toISOString().split('T')[0]
+    });
+    setIsAddingWorkItem(false);
+    showToast(`Added project "${item.title}"`);
+  };
+
+  const handleRemoveWorkItem = (index: number) => {
+    setNewPartner(prev => ({
+      ...prev,
+      ourWork: (prev.ourWork || []).filter((_, idx) => idx !== index)
+    }));
+  };
+
+  // Add or Edit Partner Handler with Full Verification & Fail-Safe State Clearing
   const handleCreatePartner = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPartner.name) return;
+    if (isSavingPartner) return;
+
+    const trimmedName = (newPartner.name || '').trim();
+    if (!trimmedName) {
+      setPartnerError('Business name is required.');
+      return;
+    }
+
+    setIsSavingPartner(true);
+    setPartnerError('');
 
     try {
-      const res = await fetch('/api/admin/partners', {
-        method: 'POST',
+      const payload = {
+        ...newPartner,
+        name: trimmedName,
+        verified: true,
+        verificationStatus: 'verified',
+        active: true,
+        activeStatus: true,
+        _adminName: currentUser.name || currentUser.username
+      };
+
+      const isEditing = Boolean(editingPartnerId);
+      const targetUrl = isEditing
+        ? `/api/admin/partners/${editingPartnerId}`
+        : '/api/admin/partners';
+      const fallbackUrl = isEditing
+        ? `/api/partners/${editingPartnerId}`
+        : '/api/partners';
+      const method = isEditing ? 'PUT' : 'POST';
+
+      let res = await fetch(targetUrl, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(newPartner)
+        body: JSON.stringify(payload)
       });
-      const data = await res.json();
-      if (data.success) {
-        showToast(`Partner "${newPartner.name}" created and verified successfully!`);
-        setIsAddingPartner(false);
-        loadAdminData();
-        onSyncData();
+
+      if (!res.ok && res.status === 404) {
+        res = await fetch(fallbackUrl, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
       }
-    } catch (err) {
-      console.error(err);
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const actionText = isEditing ? 'updated & verified' : 'registered & verified';
+        showToast(`Partner "${trimmedName}" ${actionText} successfully!`);
+        handleResetPartnerForm();
+        await loadAdminData();
+        onSyncData();
+      } else {
+        const errorMsg = data.error || data.message || `Failed to save partner (HTTP ${res.status})`;
+        setPartnerError(errorMsg);
+        showToast(`⚠️ ${errorMsg}`);
+      }
+    } catch (err: any) {
+      console.error('Error saving partner:', err);
+      const errorMsg = err?.message || 'Network error occurred while saving partner. Please try again.';
+      setPartnerError(errorMsg);
+      showToast(`⚠️ ${errorMsg}`);
+    } finally {
+      setIsSavingPartner(false);
     }
   };
 
   // Toggle Partner Active Status
   const handleTogglePartner = async (partner: BusinessPartner) => {
     try {
-      await fetch(`/api/admin/partners/${partner.id}`, {
+      let res = await fetch(`/api/admin/partners/${partner.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -222,6 +496,16 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         },
         body: JSON.stringify({ active: !partner.active })
       });
+      if (!res.ok && res.status === 404) {
+        res = await fetch(`/api/partners/${partner.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ active: !partner.active })
+        });
+      }
       showToast(`Partner "${partner.name}" ${!partner.active ? 'activated' : 'deactivated'}`);
       loadAdminData();
       onSyncData();
@@ -235,10 +519,16 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     if (!window.confirm(`Are you sure you want to delete verified partner "${name}"?`)) return;
 
     try {
-      await fetch(`/api/admin/partners/${id}`, {
+      let res = await fetch(`/api/admin/partners/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok && res.status === 404) {
+        res = await fetch(`/api/partners/${id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
       showToast(`Partner "${name}" removed from database`);
       loadAdminData();
       onSyncData();
@@ -268,6 +558,67 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         loadAdminData();
         onSyncData();
       }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Create Service Handler (Healthcare & Other Services)
+  const handleCreateService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const finalName = newServiceItem.name === 'Custom' ? newServiceItem.customName.trim() : newServiceItem.name;
+    if (!finalName || !selectedPartnerForService) return;
+
+    try {
+      const partner = partners.find(p => p.id === selectedPartnerForService);
+      const res = await fetch('/api/services', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          partnerId: selectedPartnerForService,
+          partnerName: partner?.name || 'Verified Provider',
+          name: finalName,
+          category: newServiceItem.category,
+          subcategory: newServiceItem.subcategory,
+          startingPrice: Number(newServiceItem.price),
+          price: Number(newServiceItem.price),
+          pricingType: newServiceItem.pricingType,
+          durationMinutes: Number(newServiceItem.durationMinutes),
+          description: newServiceItem.description,
+          serviceArea: newServiceItem.serviceArea,
+          credentialsInfo: newServiceItem.credentialsInfo,
+          verificationStatus: newServiceItem.verificationStatus,
+          isActive: true,
+          _adminName: currentUser.name
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(`Service "${finalName}" registered at D${newServiceItem.price} GMD`);
+        setIsAddingService(false);
+        loadAdminData();
+        onSyncData();
+      } else {
+        alert(data.error || 'Failed to register service');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteService = async (serviceId: string, name: string) => {
+    if (!window.confirm(`Delete service "${name}"?`)) return;
+    try {
+      await fetch(`/api/services/${serviceId}?adminName=${encodeURIComponent(currentUser.name)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      showToast(`Service "${name}" removed`);
+      loadAdminData();
+      onSyncData();
     } catch (err) {
       console.error(err);
     }
@@ -737,107 +1088,511 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 </div>
               </div>
 
-              {/* Add Partner Form Drawer */}
+              {/* Add / Edit Partner Form Drawer */}
               {isAddingPartner && (
                 <form
                   onSubmit={handleCreatePartner}
                   className="p-5 rounded-2xl bg-slate-900 border border-purple-500/40 space-y-4 animate-in fade-in duration-200"
                 >
-                  <h3 className="text-sm font-black text-purple-300 uppercase tracking-wider">
-                    Register New Verified Partner
-                  </h3>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                     <div>
-                      <label className="block text-slate-300 font-semibold mb-1">Business Name</label>
-                      <input
-                        type="text"
-                        required
-                        value={newPartner.name}
-                        onChange={(e) => setNewPartner({ ...newPartner, name: e.target.value })}
-                        placeholder="e.g. Lamin's Fresh Bakery"
-                        className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
-                      />
+                      <h3 className="text-sm font-black text-purple-300 uppercase tracking-wider">
+                        {editingPartnerId ? 'Edit Verified Business Partner' : 'Register New Verified Partner'}
+                      </h3>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        {editingPartnerId ? 'Update details, gallery photos, and promotional video reel' : 'Complete profile info and attach media for SOHLA AI grounding'}
+                      </p>
                     </div>
 
-                    <div>
-                      <label className="block text-slate-300 font-semibold mb-1">Category</label>
-                      <select
-                        value={newPartner.category}
-                        onChange={(e) => setNewPartner({ ...newPartner, category: e.target.value })}
-                        className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
+                    {/* Sub-Tabs: General Info vs Photos & Our Work */}
+                    <div className="flex items-center space-x-1 bg-slate-800/90 p-1 rounded-xl border border-slate-700">
+                      <button
+                        type="button"
+                        onClick={() => setPartnerFormTab('general')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
+                          partnerFormTab === 'general'
+                            ? 'bg-purple-600 text-white shadow'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
                       >
-                        {categories.map((c) => (
-                          <option key={c.key} value={c.key}>{c.name}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-slate-300 font-semibold mb-1">Subcategory / Specialty</label>
-                      <input
-                        type="text"
-                        value={newPartner.subcategory}
-                        onChange={(e) => setNewPartner({ ...newPartner, subcategory: e.target.value })}
-                        placeholder="e.g. Birthday Cakes & Pastries"
-                        className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-slate-300 font-semibold mb-1">Phone Number</label>
-                      <input
-                        type="tel"
-                        value={newPartner.phone}
-                        onChange={(e) => setNewPartner({ ...newPartner, phone: e.target.value })}
-                        className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-slate-300 font-semibold mb-1">WhatsApp Number</label>
-                      <input
-                        type="tel"
-                        value={newPartner.whatsapp}
-                        onChange={(e) => setNewPartner({ ...newPartner, whatsapp: e.target.value })}
-                        className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-slate-300 font-semibold mb-1">Location / District</label>
-                      <input
-                        type="text"
-                        value={newPartner.location}
-                        onChange={(e) => setNewPartner({ ...newPartner, location: e.target.value })}
-                        placeholder="e.g. Senegambia Strip"
-                        className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
-                      />
+                        <Store className="w-3.5 h-3.5" />
+                        <span>General Info</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPartnerFormTab('media')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
+                          partnerFormTab === 'media'
+                            ? 'bg-purple-600 text-white shadow'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <Film className="w-3.5 h-3.5" />
+                        <span>Photos & Our Work</span>
+                        <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-slate-900/60 font-mono">
+                          {(newPartner.photos?.length || 0) + (newPartner.ourWork?.length || 0) + (newPartner.videoUrl ? 1 : 0)}
+                        </span>
+                      </button>
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs text-slate-300 font-semibold mb-1">Description & Services</label>
-                    <textarea
-                      rows={2}
-                      value={newPartner.description}
-                      onChange={(e) => setNewPartner({ ...newPartner, description: e.target.value })}
-                      placeholder="Detailed overview of verified offerings..."
-                      className="w-full p-2.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs"
-                    />
-                  </div>
+                  {/* TAB A: GENERAL INFO */}
+                  {partnerFormTab === 'general' && (
+                    <div className="space-y-3.5">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                        <div>
+                          <label className="block text-slate-300 font-semibold mb-1">
+                            Business Name <span className="text-rose-400">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={newPartner.name || ''}
+                            onChange={(e) => setNewPartner({ ...newPartner, name: e.target.value })}
+                            placeholder="e.g. Lamin's Fresh Bakery"
+                            className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-purple-500"
+                          />
+                        </div>
 
-                  <div className="flex items-center space-x-2 pt-1">
+                        <div>
+                          <label className="block text-slate-300 font-semibold mb-1">Category</label>
+                          <select
+                            value={newPartner.category || 'SERVICES'}
+                            onChange={(e) => setNewPartner({ ...newPartner, category: e.target.value })}
+                            className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-purple-500"
+                          >
+                            {categories.map((c) => (
+                              <option key={c.key} value={c.key}>{c.name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 font-semibold mb-1">Subcategory / Specialty</label>
+                          <input
+                            type="text"
+                            value={newPartner.subcategory || ''}
+                            onChange={(e) => setNewPartner({ ...newPartner, subcategory: e.target.value })}
+                            placeholder="e.g. Birthday Cakes & Pastries"
+                            className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-purple-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 font-semibold mb-1">Phone Number</label>
+                          <input
+                            type="tel"
+                            value={newPartner.phone || ''}
+                            onChange={(e) => setNewPartner({ ...newPartner, phone: e.target.value })}
+                            placeholder="+220 7xxxxxx"
+                            className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-purple-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 font-semibold mb-1">WhatsApp Number</label>
+                          <input
+                            type="tel"
+                            value={newPartner.whatsapp || ''}
+                            onChange={(e) => setNewPartner({ ...newPartner, whatsapp: e.target.value })}
+                            placeholder="+220 7xxxxxx"
+                            className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-purple-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 font-semibold mb-1">Location / District</label>
+                          <input
+                            type="text"
+                            value={newPartner.location || ''}
+                            onChange={(e) => setNewPartner({ ...newPartner, location: e.target.value })}
+                            placeholder="e.g. Senegambia Strip"
+                            className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-purple-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 font-semibold mb-1">Street Address</label>
+                          <input
+                            type="text"
+                            value={newPartner.address || ''}
+                            onChange={(e) => setNewPartner({ ...newPartner, address: e.target.value })}
+                            placeholder="e.g. Senegambia, Kololi"
+                            className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-purple-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 font-semibold mb-1">Opening Hours</label>
+                          <input
+                            type="text"
+                            value={newPartner.openingHours || ''}
+                            onChange={(e) => setNewPartner({ ...newPartner, openingHours: e.target.value })}
+                            placeholder="e.g. 09:00 AM - 10:00 PM"
+                            className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-purple-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 font-semibold mb-1">Cover Image URL</label>
+                          <input
+                            type="url"
+                            value={newPartner.coverImage || ''}
+                            onChange={(e) => setNewPartner({ ...newPartner, coverImage: e.target.value })}
+                            placeholder="https://..."
+                            className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-purple-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs text-slate-300 font-semibold mb-1">Description & Services</label>
+                        <textarea
+                          rows={2}
+                          value={newPartner.description || ''}
+                          onChange={(e) => setNewPartner({ ...newPartner, description: e.target.value })}
+                          placeholder="Detailed overview of verified offerings, specialty items, and service standards..."
+                          className="w-full p-2.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-purple-500"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB B: PHOTOS & OUR WORK (DIRECT VIDEO & MEDIA UPLOAD) */}
+                  {partnerFormTab === 'media' && (
+                    <div className="space-y-4">
+                      {/* 1. Promotional Video / Reel */}
+                      <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <h4 className="font-bold text-white text-xs flex items-center gap-1.5">
+                              <Film className="w-4 h-4 text-purple-400" />
+                              <span>Promotional Video / Reel (Optional)</span>
+                            </h4>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                              Upload an MP4 / WebM video clip directly from your device, or paste a video URL.
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="file"
+                              ref={partnerVideoInputRef}
+                              onChange={handlePartnerVideoUpload}
+                              accept="video/*"
+                              className="hidden"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => partnerVideoInputRef.current?.click()}
+                              disabled={isUploadingVideo}
+                              className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg text-xs transition flex items-center gap-1.5 shadow disabled:opacity-50"
+                            >
+                              {isUploadingVideo ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Video className="w-3.5 h-3.5" />
+                              )}
+                              <span>{newPartner.videoUrl ? 'Replace Video' : 'Upload Video (Device)'}</span>
+                            </button>
+
+                            {newPartner.videoUrl && (
+                              <button
+                                type="button"
+                                onClick={() => setNewPartner(prev => ({ ...prev, videoUrl: '' }))}
+                                className="px-2.5 py-1.5 bg-rose-900/60 hover:bg-rose-800 text-rose-300 font-semibold rounded-lg text-xs transition border border-rose-700/50"
+                              >
+                                Remove
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Video URL Fallback */}
+                        <div className="flex gap-2 text-xs">
+                          <input
+                            type="url"
+                            value={newPartner.videoUrl || ''}
+                            onChange={(e) => setNewPartner({ ...newPartner, videoUrl: e.target.value })}
+                            placeholder="Or paste video direct URL (https://...mp4)"
+                            className="flex-1 h-8 px-3 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono text-[11px] focus:outline-none focus:border-purple-500"
+                          />
+                        </div>
+
+                        {/* Video Player Preview */}
+                        {newPartner.videoUrl && (
+                          <div className="rounded-lg overflow-hidden border border-purple-500/40 bg-black/60 aspect-video max-w-sm">
+                            <video
+                              src={newPartner.videoUrl}
+                              controls
+                              playsInline
+                              preload="metadata"
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 2. Business Photo Gallery */}
+                      <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <h4 className="font-bold text-white text-xs flex items-center gap-1.5">
+                              <ImageIcon className="w-4 h-4 text-purple-400" />
+                              <span>Business Photos & Gallery ({newPartner.photos?.length || 0})</span>
+                            </h4>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                              Add photos showcasing the storefront, dining area, products, or service team.
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="file"
+                              ref={partnerGalleryInputRef}
+                              onChange={handlePartnerGalleryUpload}
+                              accept="image/*"
+                              multiple
+                              className="hidden"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => partnerGalleryInputRef.current?.click()}
+                              disabled={isUploadingPhotos}
+                              className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg text-xs transition flex items-center gap-1.5 shadow disabled:opacity-50"
+                            >
+                              {isUploadingPhotos ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Upload className="w-3.5 h-3.5" />
+                              )}
+                              <span>+ Add Photos (Device)</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Secondary: Paste Image URL */}
+                        <div className="flex gap-2">
+                          <input
+                            type="url"
+                            value={newPhotoUrl}
+                            onChange={(e) => setNewPhotoUrl(e.target.value)}
+                            placeholder="Or paste photo URL (https://...)"
+                            className="flex-1 h-8 px-3 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono text-[11px] focus:outline-none focus:border-purple-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddPartnerPhotoUrl}
+                            disabled={!newPhotoUrl.trim()}
+                            className="px-3 h-8 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg text-xs transition disabled:opacity-50"
+                          >
+                            Add URL
+                          </button>
+                        </div>
+
+                        {/* Photos Grid */}
+                        {newPartner.photos && newPartner.photos.length > 0 ? (
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+                            {newPartner.photos.map((photo, pIdx) => (
+                              <div key={pIdx} className="relative group rounded-lg overflow-hidden border border-slate-700 bg-black/40 aspect-video shadow">
+                                <img
+                                  src={photo}
+                                  alt={`Gallery ${pIdx + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemovePartnerPhoto(pIdx)}
+                                    className="p-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-md shadow"
+                                    title="Remove photo"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-4 border border-dashed border-slate-700 rounded-xl bg-slate-900/40 text-slate-400 text-xs">
+                            No photos added yet. Use "+ Add Photos" above to select from your device.
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 3. Our Work & Showcase Projects */}
+                      <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-bold text-white text-xs flex items-center gap-1.5">
+                              <Star className="w-4 h-4 text-purple-400" />
+                              <span>Our Work & Showcase Projects ({newPartner.ourWork?.length || 0})</span>
+                            </h4>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                              Featured completed work displayed on the customer profile's "Our Work & Gallery" tab
+                            </p>
+                          </div>
+
+                          {!isAddingWorkItem && (
+                            <button
+                              type="button"
+                              onClick={() => setIsAddingWorkItem(true)}
+                              className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg text-xs transition flex items-center gap-1.5 shadow"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>+ Add Project</span>
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Inline Add Work Item Form */}
+                        {isAddingWorkItem && (
+                          <div className="p-3.5 rounded-xl bg-slate-900 border border-purple-500/30 space-y-3 text-xs">
+                            <div className="font-bold text-purple-300">New Showcase Project</div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                              <input
+                                type="text"
+                                placeholder="Project Title (e.g. Luxury Wedding Cake)"
+                                value={newWorkItem.title || ''}
+                                onChange={(e) => setNewWorkItem({ ...newWorkItem, title: e.target.value })}
+                                className="h-8 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Category / Tag (e.g. Weddings)"
+                                value={newWorkItem.category || ''}
+                                onChange={(e) => setNewWorkItem({ ...newWorkItem, category: e.target.value })}
+                                className="h-8 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
+                              />
+                            </div>
+
+                            <textarea
+                              rows={2}
+                              placeholder="Brief description of the work performed..."
+                              value={newWorkItem.description || ''}
+                              onChange={(e) => setNewWorkItem({ ...newWorkItem, description: e.target.value })}
+                              className="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs"
+                            />
+
+                            <div className="flex flex-wrap items-center gap-2">
+                              <input
+                                type="file"
+                                ref={partnerWorkImageInputRef}
+                                onChange={handleWorkItemImageUpload}
+                                accept="image/*"
+                                className="hidden"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => partnerWorkImageInputRef.current?.click()}
+                                disabled={isUploadingWorkImage}
+                                className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs transition flex items-center gap-1 disabled:opacity-50"
+                              >
+                                {isUploadingWorkImage ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                                <span>Upload Project Photo</span>
+                              </button>
+
+                              <input
+                                type="url"
+                                placeholder="Or project image URL"
+                                value={newWorkItem.image || ''}
+                                onChange={(e) => setNewWorkItem({ ...newWorkItem, image: e.target.value })}
+                                className="flex-1 min-w-[180px] h-8 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white font-mono text-[11px]"
+                              />
+                            </div>
+
+                            {newWorkItem.image && (
+                              <img
+                                src={newWorkItem.image}
+                                alt="Preview"
+                                className="w-24 h-16 object-cover rounded-lg border border-slate-700"
+                              />
+                            )}
+
+                            <div className="flex items-center gap-2 pt-1">
+                              <button
+                                type="button"
+                                onClick={handleSaveWorkItem}
+                                className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg text-xs"
+                              >
+                                Save Project
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setIsAddingWorkItem(false)}
+                                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Projects List */}
+                        {newPartner.ourWork && newPartner.ourWork.length > 0 ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                            {newPartner.ourWork.map((item, wIdx) => (
+                              <div key={item.id || wIdx} className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-700 flex items-center justify-between gap-2.5">
+                                <div className="flex items-center space-x-2.5 min-w-0">
+                                  <img
+                                    src={item.image}
+                                    alt={item.title}
+                                    className="w-10 h-10 rounded-lg object-cover bg-slate-800 shrink-0"
+                                  />
+                                  <div className="min-w-0">
+                                    <div className="font-bold text-white text-xs truncate">{item.title}</div>
+                                    <div className="text-[10px] text-purple-300 truncate">{item.category}</div>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveWorkItem(wIdx)}
+                                  className="p-1 text-rose-400 hover:text-rose-300"
+                                  title="Delete project"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-4 border border-dashed border-slate-700 rounded-xl bg-slate-900/40 text-slate-400 text-xs">
+                            No showcase projects added yet. Click "+ Add Project" to highlight verified work.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Error banner inside form */}
+                  {partnerError && (
+                    <div className="p-3 rounded-xl bg-rose-950/80 border border-rose-700/60 text-rose-200 text-xs flex items-center space-x-2 animate-in fade-in">
+                      <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                      <span>{partnerError}</span>
+                    </div>
+                  )}
+
+                  {/* Form Action Buttons with Clear Loading State & Duplicate Submission Prevention */}
+                  <div className="flex items-center space-x-2 pt-2 border-t border-slate-800">
                     <button
                       type="submit"
-                      className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow"
+                      disabled={isSavingPartner}
+                      className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:bg-purple-800 disabled:opacity-60 text-white font-bold text-xs shadow flex items-center space-x-1.5 transition cursor-pointer"
                     >
-                      Save Partner & Verify
+                      {isSavingPartner ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>{editingPartnerId ? 'Updating...' : 'Saving & Verifying...'}</span>
+                        </>
+                      ) : (
+                        <span>{editingPartnerId ? 'Update Partner & Verify' : 'Save Partner & Verify'}</span>
+                      )}
                     </button>
                     <button
                       type="button"
-                      onClick={() => setIsAddingPartner(false)}
-                      className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs"
+                      disabled={isSavingPartner}
+                      onClick={handleResetPartnerForm}
+                      className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition"
                     >
                       Cancel
                     </button>
@@ -869,7 +1624,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                         <th className="py-3 px-4">Category</th>
                         <th className="py-3 px-4">Location</th>
                         <th className="py-3 px-4">Contacts</th>
-                        <th className="py-3 px-4">Products</th>
+                        <th className="py-3 px-4">Media</th>
                         <th className="py-3 px-4">Status</th>
                         <th className="py-3 px-4 text-right">Actions</th>
                       </tr>
@@ -897,8 +1652,16 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                             <div className="text-emerald-400 text-[10px]">WA: {p.whatsapp}</div>
                           </td>
                           <td className="py-3 px-4">
-                            <span className="font-bold text-white">{p.products?.length || 0}</span>
-                            <span className="text-[10px] text-slate-400 block">items</span>
+                            <div className="flex items-center space-x-1.5 text-[11px]">
+                              {p.videoUrl ? (
+                                <span className="px-1.5 py-0.5 rounded bg-purple-900/60 text-purple-300 font-semibold border border-purple-700/50 flex items-center gap-1">
+                                  <Video className="w-3 h-3" /> Reel
+                                </span>
+                              ) : null}
+                              <span className="text-slate-300">
+                                {p.photos?.length || 0} photos
+                              </span>
+                            </div>
                           </td>
                           <td className="py-3 px-4">
                             <button
@@ -913,6 +1676,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                             </button>
                           </td>
                           <td className="py-3 px-4 text-right space-x-2">
+                            <button
+                              onClick={() => handleStartEditPartner(p)}
+                              className="text-amber-400 hover:text-amber-300 font-bold p-1 inline-flex items-center gap-1"
+                              title="Edit partner details, photos & video"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                              <span>Edit</span>
+                            </button>
                             <button
                               onClick={() => {
                                 setSelectedPartnerForProduct(p.id);
@@ -941,10 +1712,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             </div>
           )}
 
-          {/* TAB 3: PRODUCT CATALOG */}
+          {/* TAB 3: PRODUCT & SERVICE CATALOG */}
           {activeTab === 'products' && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h1 className="text-xl sm:text-2xl font-black font-display text-white tracking-tight">
                     Product & Service Catalog
@@ -954,118 +1725,346 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   </p>
                 </div>
 
-                <button
-                  onClick={() => setIsAddingProduct(!isAddingProduct)}
-                  className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center space-x-1.5 shadow"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add Product</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs font-bold">
+                    <button
+                      onClick={() => setCatalogSubTab('products')}
+                      className={`px-3 py-1.5 rounded-lg transition ${
+                        catalogSubTab === 'products'
+                          ? 'bg-purple-600 text-white'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Products ({partners.flatMap(p => p.products || []).length})
+                    </button>
+                    <button
+                      onClick={() => setCatalogSubTab('services')}
+                      className={`px-3 py-1.5 rounded-lg transition ${
+                        catalogSubTab === 'services'
+                          ? 'bg-purple-600 text-white'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Services & Healthcare ({partners.flatMap(p => p.services || []).length})
+                    </button>
+                  </div>
+
+                  {catalogSubTab === 'products' ? (
+                    <button
+                      onClick={() => setIsAddingProduct(!isAddingProduct)}
+                      className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center space-x-1.5 shadow"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add Product</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setIsAddingService(!isAddingService)}
+                      className="px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold flex items-center space-x-1.5 shadow"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Register Service</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {/* Add Product Form */}
-              {isAddingProduct && (
-                <form
-                  onSubmit={handleCreateProduct}
-                  className="p-5 rounded-2xl bg-slate-900 border border-purple-500/40 space-y-3.5 animate-in fade-in"
-                >
-                  <h3 className="text-sm font-black text-purple-300 uppercase tracking-wider">
-                    Add Product / Service Item
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                    <div>
-                      <label className="block text-slate-300 font-semibold mb-1">Select Merchant / Partner</label>
-                      <select
-                        required
-                        value={selectedPartnerForProduct}
-                        onChange={(e) => setSelectedPartnerForProduct(e.target.value)}
-                        className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
-                      >
-                        <option value="">-- Choose Partner --</option>
-                        {partners.map((p) => (
-                          <option key={p.id} value={p.id}>{p.name} ({p.location})</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-slate-300 font-semibold mb-1">Product Name</label>
-                      <input
-                        type="text"
-                        required
-                        value={newProduct.name}
-                        onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                        placeholder="e.g. Fish Benachin (Jollof Rice)"
-                        className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-slate-300 font-semibold mb-1">Price in Dalasi (GMD)</label>
-                      <input
-                        type="number"
-                        required
-                        min="1"
-                        value={newProduct.price}
-                        onChange={(e) => setNewProduct({ ...newProduct, price: Number(e.target.value) })}
-                        className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white font-bold"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs text-slate-300 font-semibold mb-1">Description</label>
-                    <input
-                      type="text"
-                      value={newProduct.description}
-                      onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                      placeholder="e.g. Traditional Gambian seasoned rice with fresh Captain fish and bitter tomatoes"
-                      className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs"
-                    />
-                  </div>
-
-                  <div className="flex items-center space-x-2 pt-1">
-                    <button
-                      type="submit"
-                      className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs"
+              {/* PRODUCTS SUB-TAB */}
+              {catalogSubTab === 'products' && (
+                <>
+                  {/* Add Product Form */}
+                  {isAddingProduct && (
+                    <form
+                      onSubmit={handleCreateProduct}
+                      className="p-5 rounded-2xl bg-slate-900 border border-purple-500/40 space-y-3.5 animate-in fade-in"
                     >
-                      Save Product to Catalog
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsAddingProduct(false)}
-                      className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs"
-                    >
-                      Cancel
-                    </button>
+                      <h3 className="text-sm font-black text-purple-300 uppercase tracking-wider">
+                        Add Product Item
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                        <div>
+                          <label className="block text-slate-300 font-semibold mb-1">Select Merchant / Partner</label>
+                          <select
+                            required
+                            value={selectedPartnerForProduct}
+                            onChange={(e) => setSelectedPartnerForProduct(e.target.value)}
+                            className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
+                          >
+                            <option value="">-- Choose Partner --</option>
+                            {partners.map((p) => (
+                              <option key={p.id} value={p.id}>{p.name} ({p.location})</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 font-semibold mb-1">Product Name</label>
+                          <input
+                            type="text"
+                            required
+                            value={newProduct.name}
+                            onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                            placeholder="e.g. Fish Benachin (Jollof Rice)"
+                            className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 font-semibold mb-1">Price in Dalasi (GMD)</label>
+                          <input
+                            type="number"
+                            required
+                            min="1"
+                            value={newProduct.price}
+                            onChange={(e) => setNewProduct({ ...newProduct, price: Number(e.target.value) })}
+                            className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white font-bold"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs text-slate-300 font-semibold mb-1">Description</label>
+                        <input
+                          type="text"
+                          value={newProduct.description}
+                          onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                          placeholder="e.g. Traditional Gambian seasoned rice with fresh Captain fish and bitter tomatoes"
+                          className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs"
+                        />
+                      </div>
+
+                      <div className="flex items-center space-x-2 pt-1">
+                        <button
+                          type="submit"
+                          className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs"
+                        >
+                          Save Product to Catalog
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsAddingProduct(false)}
+                          className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
+                  {/* All Products Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {partners.flatMap(p => (p.products || []).map(prod => ({ ...prod, partnerName: p.name, partnerId: p.id }))).map((prod) => (
+                      <div key={prod.id} className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 flex items-start space-x-3">
+                        <img
+                          src={prod.image}
+                          alt={prod.name}
+                          className="w-14 h-14 rounded-xl object-cover bg-slate-800 shrink-0"
+                        />
+                        <div className="flex-1 min-w-0 text-xs">
+                          <span className="text-[10px] text-purple-400 font-semibold block truncate">
+                            {prod.partnerName}
+                          </span>
+                          <h4 className="font-bold text-white text-sm truncate">{prod.name}</h4>
+                          <div className="text-amber-400 font-black text-sm mt-0.5">
+                            D{prod.price} GMD
+                          </div>
+                          <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">
+                            {prod.description}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </form>
+                </>
               )}
 
-              {/* All Products Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {partners.flatMap(p => (p.products || []).map(prod => ({ ...prod, partnerName: p.name, partnerId: p.id }))).map((prod) => (
-                  <div key={prod.id} className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 flex items-start space-x-3">
-                    <img
-                      src={prod.image}
-                      alt={prod.name}
-                      className="w-14 h-14 rounded-xl object-cover bg-slate-800 shrink-0"
-                    />
-                    <div className="flex-1 min-w-0 text-xs">
-                      <span className="text-[10px] text-purple-400 font-semibold block truncate">
-                        {prod.partnerName}
-                      </span>
-                      <h4 className="font-bold text-white text-sm truncate">{prod.name}</h4>
-                      <div className="text-amber-400 font-black text-sm mt-0.5">
-                        D{prod.price} GMD
+              {/* SERVICES & HEALTHCARE SUB-TAB */}
+              {catalogSubTab === 'services' && (
+                <>
+                  {/* Add Service Form */}
+                  {isAddingService && (
+                    <form
+                      onSubmit={handleCreateService}
+                      className="p-5 rounded-2xl bg-slate-900 border border-teal-500/40 space-y-3.5 animate-in fade-in"
+                    >
+                      <h3 className="text-sm font-black text-teal-300 uppercase tracking-wider">
+                        Register Healthcare & Clinical Service
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                        <div>
+                          <label className="block text-slate-300 font-semibold mb-1">Select Provider / Clinic</label>
+                          <select
+                            required
+                            value={selectedPartnerForService}
+                            onChange={(e) => setSelectedPartnerForService(e.target.value)}
+                            className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
+                          >
+                            <option value="">-- Choose Provider --</option>
+                            {partners.map((p) => (
+                              <option key={p.id} value={p.id}>{p.name} ({p.location}) - {p.category}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 font-semibold mb-1">Standard Healthcare Service</label>
+                          <select
+                            value={newServiceItem.name}
+                            onChange={(e) => setNewServiceItem({ ...newServiceItem, name: e.target.value })}
+                            className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
+                          >
+                            {HEALTHCARE_SERVICES_LIST.map((srv) => (
+                              <option key={srv} value={srv}>{srv}</option>
+                            ))}
+                            <option value="Custom">Custom Service...</option>
+                          </select>
+                        </div>
+
+                        {newServiceItem.name === 'Custom' && (
+                          <div>
+                            <label className="block text-slate-300 font-semibold mb-1">Custom Title</label>
+                            <input
+                              type="text"
+                              required
+                              value={newServiceItem.customName}
+                              onChange={(e) => setNewServiceItem({ ...newServiceItem, customName: e.target.value })}
+                              placeholder="e.g. Specialized Palliative Care"
+                              className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
+                            />
+                          </div>
+                        )}
+
+                        <div>
+                          <label className="block text-slate-300 font-semibold mb-1">Starting Price (Dalasi GMD)</label>
+                          <input
+                            type="number"
+                            required
+                            min="1"
+                            value={newServiceItem.price}
+                            onChange={(e) => setNewServiceItem({ ...newServiceItem, price: Number(e.target.value) })}
+                            className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white font-bold"
+                          />
+                        </div>
                       </div>
-                      <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">
-                        {prod.description}
-                      </p>
-                    </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                        <div>
+                          <label className="block text-slate-300 font-semibold mb-1">Pricing Model</label>
+                          <select
+                            value={newServiceItem.pricingType}
+                            onChange={(e) => setNewServiceItem({ ...newServiceItem, pricingType: e.target.value })}
+                            className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
+                          >
+                            <option value="Per Visit">Per Visit</option>
+                            <option value="Hourly">Hourly</option>
+                            <option value="Daily">Daily</option>
+                            <option value="Fixed">Fixed Fee</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 font-semibold mb-1">Estimated Duration (Mins)</label>
+                          <input
+                            type="number"
+                            min="15"
+                            step="15"
+                            value={newServiceItem.durationMinutes}
+                            onChange={(e) => setNewServiceItem({ ...newServiceItem, durationMinutes: Number(e.target.value) })}
+                            className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 font-semibold mb-1">Coverage Area</label>
+                          <input
+                            type="text"
+                            value={newServiceItem.serviceArea}
+                            onChange={(e) => setNewServiceItem({ ...newServiceItem, serviceArea: e.target.value })}
+                            placeholder="e.g. Greater Banjul Area, Brusubi"
+                            className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs text-slate-300 font-semibold mb-1">Description & Scope</label>
+                        <input
+                          type="text"
+                          value={newServiceItem.description}
+                          onChange={(e) => setNewServiceItem({ ...newServiceItem, description: e.target.value })}
+                          placeholder="e.g. Qualified home nursing, wound care, medication administration by registered nurse"
+                          className="w-full h-9 px-3 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs"
+                        />
+                      </div>
+
+                      <div className="flex items-center space-x-2 pt-1">
+                        <button
+                          type="submit"
+                          className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs"
+                        >
+                          Register Service
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsAddingService(false)}
+                          className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
+                  {/* All Services Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {partners.flatMap(p => (p.services || []).map(srv => ({ ...srv, partnerName: p.name, partnerId: p.id }))).length === 0 ? (
+                      <div className="col-span-3 text-center py-10 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 text-xs">
+                        No verified services registered yet. Click "Register Service" above to add one.
+                      </div>
+                    ) : (
+                      partners.flatMap(p => (p.services || []).map(srv => ({ ...srv, partnerName: p.name, partnerId: p.id }))).map((srv) => (
+                        <div key={srv.id} className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between text-xs space-y-2">
+                          <div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] text-teal-400 font-semibold block truncate">
+                                {srv.partnerName}
+                              </span>
+                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-teal-950 text-teal-300 border border-teal-800">
+                                {srv.subcategory || srv.category || 'Service'}
+                              </span>
+                            </div>
+                            <h4 className="font-bold text-white text-sm mt-1">{srv.name}</h4>
+                            <div className="text-emerald-400 font-black text-sm mt-0.5">
+                              Starts D{srv.startingPrice || srv.price || 0} GMD
+                              <span className="text-[10px] text-slate-400 font-normal ml-1">
+                                ({srv.pricingType || 'Per Visit'})
+                              </span>
+                            </div>
+                            {srv.description && (
+                              <p className="text-[11px] text-slate-400 line-clamp-2 mt-1">
+                                {srv.description}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+                            <span className="text-[10px] text-slate-500">
+                              {srv.durationMinutes ? `${srv.durationMinutes} mins` : 'Flexible duration'}
+                            </span>
+                            <button
+                              onClick={() => handleDeleteService(srv.id, srv.name)}
+                              className="text-rose-400 hover:text-rose-300 p-1"
+                              title="Delete Service"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
-                ))}
-              </div>
+                </>
+              )}
             </div>
           )}
 

@@ -27,7 +27,11 @@ import {
   RefreshCw,
   Sliders,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  KeyRound,
+  Scissors,
+  Truck,
+  HeartHandshake
 } from 'lucide-react';
 import {
   AdminUser,
@@ -51,6 +55,10 @@ import { PaymentsModule } from './PaymentsModule';
 import { MediaModule } from './MediaModule';
 import { ApprovalsModule } from './ApprovalsModule';
 import { PlatformSettingsModule } from './PlatformSettingsModule';
+import { AdminSecurityPasswordModule } from './AdminSecurityPasswordModule';
+import { BeautyBookingsModule } from './BeautyBookingsModule';
+import { DeliveryOrdersModule } from './DeliveryOrdersModule';
+import { HealthcareServicesModule } from './HealthcareServicesModule';
 import { TeamManagementTab } from '../admin/TeamManagementTab';
 import { ModuleErrorBoundary } from './ModuleErrorBoundary';
 
@@ -60,6 +68,7 @@ interface ControlCenterProps {
   onLogout: () => void;
   onClose: () => void;
   onSwitchToClassicAdmin?: () => void;
+  onDataUpdated?: () => void;
 }
 
 export const ControlCenter: React.FC<ControlCenterProps> = ({
@@ -67,7 +76,8 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
   token,
   onLogout,
   onClose,
-  onSwitchToClassicAdmin
+  onSwitchToClassicAdmin,
+  onDataUpdated
 }) => {
   const [activeTab, setActiveTab] = useState<ControlCenterTab>('dashboard');
   const [partners, setPartners] = useState<BusinessPartner[]>([]);
@@ -153,6 +163,8 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
         const h = await healthRes.json();
         setHealthStatus(h);
       }
+
+      onDataUpdated?.();
     } catch (err) {
       console.error('Failed to sync Control Center data:', err);
     } finally {
@@ -164,8 +176,26 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
     fetchFullPlatformData();
   }, [token]);
 
-  const handleDownloadBackup = () => {
+  const handleDownloadBackup = async () => {
     try {
+      if (token && currentUser.role === 'SUPER_ADMIN') {
+        const res = await fetch('/api/admin/backup', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `sohla-database-backup-${new Date().toISOString().split('T')[0]}.json`;
+          a.click();
+          setBackupStatus('Server JSON snapshot backup downloaded successfully');
+          setTimeout(() => setBackupStatus(null), 3000);
+          return;
+        }
+      }
+
+      // Safe client snapshot fallback
       const dataToExport = {
         exportedAt: new Date().toISOString(),
         exportedBy: currentUser.name,
@@ -183,7 +213,7 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
       setBackupStatus('JSON Snapshot backup saved successfully');
       setTimeout(() => setBackupStatus(null), 3000);
     } catch (err) {
-      console.error(err);
+      console.error('Backup error:', err);
     }
   };
 
@@ -197,6 +227,14 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
         { id: 'products', label: 'Products & Services', icon: Package },
         { id: 'categories', label: 'Categories & Locations', icon: Tag },
         { id: 'advertisements', label: '5-8s Video Billboards', icon: Video, count: ads.length }
+      ]
+    },
+    {
+      group: 'Direct Services & Dispatch',
+      items: [
+        { id: 'beauty_bookings', label: 'Beauty & Salon Bookings', icon: Scissors },
+        { id: 'healthcare_services', label: 'Healthcare & Nursing', icon: HeartHandshake },
+        { id: 'delivery_orders', label: 'Delivery & Courier Dispatch', icon: Truck }
       ]
     },
     {
@@ -221,6 +259,7 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
       group: 'Governance & Security',
       items: [
         { id: 'super_team', label: 'Super Team & Clearance', icon: ShieldCheck },
+        { id: 'admin_password', label: 'Admin Security & Password', icon: KeyRound },
         { id: 'analytics', label: 'Analytics & Search Demand', icon: BarChart3 },
         { id: 'security_audit', label: 'Security & Audit Logs', icon: ShieldAlert },
         { id: 'system_health', label: 'System Health & Backup', icon: Activity },
@@ -447,6 +486,7 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
                 partners={partners}
                 onRefresh={fetchFullPlatformData}
                 currentAdminName={currentUser.name}
+                token={token}
               />
             </ModuleErrorBoundary>
           )}
@@ -473,6 +513,32 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
                 onRefresh={fetchFullPlatformData}
                 currentAdminName={currentUser.name}
               />
+            </ModuleErrorBoundary>
+          )}
+
+          {/* Module: Beauty & Salon Bookings */}
+          {activeTab === 'beauty_bookings' && (
+            <ModuleErrorBoundary moduleName="Beauty Bookings" onReset={fetchFullPlatformData} onNavigateHome={() => setActiveTab('dashboard')}>
+              <BeautyBookingsModule adminUser={currentUser} />
+            </ModuleErrorBoundary>
+          )}
+
+          {/* Module: Healthcare & Nursing Services */}
+          {activeTab === 'healthcare_services' && (
+            <ModuleErrorBoundary moduleName="Healthcare & Nursing" onReset={fetchFullPlatformData} onNavigateHome={() => setActiveTab('dashboard')}>
+              <HealthcareServicesModule
+                partners={partners}
+                onRefresh={fetchFullPlatformData}
+                currentAdminName={currentUser.name}
+                token={token}
+              />
+            </ModuleErrorBoundary>
+          )}
+
+          {/* Module: Delivery & Courier Dispatch */}
+          {activeTab === 'delivery_orders' && (
+            <ModuleErrorBoundary moduleName="Delivery Orders" onReset={fetchFullPlatformData} onNavigateHome={() => setActiveTab('dashboard')}>
+              <DeliveryOrdersModule adminUser={currentUser} />
             </ModuleErrorBoundary>
           )}
 
@@ -749,6 +815,17 @@ export const ControlCenter: React.FC<ControlCenterProps> = ({
           {activeTab === 'settings' && (
             <ModuleErrorBoundary moduleName="Platform Settings" onReset={fetchFullPlatformData} onNavigateHome={() => setActiveTab('dashboard')}>
               <PlatformSettingsModule currentAdminName={currentUser.name} />
+            </ModuleErrorBoundary>
+          )}
+
+          {/* Module 19: Admin Security & Password */}
+          {activeTab === 'admin_password' && (
+            <ModuleErrorBoundary moduleName="Admin Security & Password" onReset={fetchFullPlatformData} onNavigateHome={() => setActiveTab('dashboard')}>
+              <AdminSecurityPasswordModule
+                currentUser={currentUser}
+                token={token}
+                onLogout={onLogout}
+              />
             </ModuleErrorBoundary>
           )}
         </div>

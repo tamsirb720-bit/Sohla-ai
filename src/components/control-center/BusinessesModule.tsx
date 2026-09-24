@@ -38,12 +38,14 @@ interface BusinessesModuleProps {
 }
 
 const DEFAULT_CATEGORIES = [
+  { key: 'SHOPPING', name: 'Shopping' },
   { key: 'FOOD & RESTAURANTS', name: 'Food & Restaurants' },
-  { key: 'RESTAURANTS', name: 'Restaurants & Dining' },
-  { key: 'SUPERMARKETS & GROCERIES', name: 'Supermarkets & Groceries' },
-  { key: 'HEALTH & PHARMACY', name: 'Health & Pharmacy' },
-  { key: 'HOME & PROFESSIONAL SERVICES', name: 'Home & Professional Services' },
-  { key: 'LOCAL ARTISANS & CRAFTS', name: 'Local Artisans & Crafts' },
+  { key: 'TRANSPORT', name: 'Transport' },
+  { key: 'DELIVERY & ERRANDS', name: 'Delivery & Errands' },
+  { key: 'BEAUTY & WELLNESS', name: 'Beauty & Wellness' },
+  { key: 'SERVICES', name: 'Services' },
+  { key: 'HOUSING & PROPERTIES', name: 'Housing & Properties' },
+  { key: 'HOTELS & STAYS', name: 'Hotels & Stays' },
   { key: 'TOURISM & HOSPITALITY', name: 'Tourism & Hospitality' }
 ];
 
